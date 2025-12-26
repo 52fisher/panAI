@@ -43,7 +43,7 @@
 `✅Chrome 扩展商店`  `✅Edge 扩展商店`  `✅Firefox 扩展商店`  `✅Microsoft 应用商店`
 
 
-**2.2.0+版本起，未在上述列表中的网盘，AI也能够智能识别并支持填写提取码（具体请查看isPanLinkBackup相关代码）。**
+**2.2.0+版本起，未在上述列表中的网盘，AI也能够智能识别并支持填写提取码（具体请查看inferPanLink相关代码）。**
 
 
 安装成功后可以使用页尾的链接进行测试，识别速度小于 1 毫秒。
@@ -57,7 +57,9 @@
 - **[安装地址（源地址）](https://raw.githubusercontent.com/52fisher/panAI/main/panai.user.js)**
 - **[安装地址（jsdelivr镜像地址）](https://cdn.jsdelivr.net/gh/52fisher/panAI@main/panai.user.js)**
 - **[安装地址（ghproxy镜像地址）](https://ghproxy.net/https://raw.githubusercontent.com/52fisher/panAI/main/panai.user.js)**
+
 ## 功能介绍
+
 ### 核心功能
 - 智能识别页面中的网盘链接
 - 自动提取并填充提取码
@@ -65,6 +67,8 @@
 - 支持链接中的中文标点自动转换为英文标点（点、冒号、斜杠等）
 - 内置支持 24 个主流网盘和 14 个小众网盘
 - 未在列表中的网盘，AI能够智能识别并支持填写提取码（需要满足判定条件）。
+
+> 在删除内置规则的情况下，依然能对百度网盘、天翼云盘、微云、移动云盘、奶牛快传、夸克等多类网盘进行识别和填写提取码。对国外网盘，如uploadgig、alfafile、rapidgator.net、rg.to、nitroflare等也能智能识别而无需再配置
 
 ### 新增功能特性
 - **智能密码输入框识别**：通过ID、类名、占位符、标签名等多种属性查找密码输入框
@@ -97,7 +101,6 @@ button: ['button.MuiButton-containedSecondary'],//密码输入框的确认按钮
 name: '爱丽丝的记事本',//网盘名称
 storage: 'local',//密码存储方式，可选local或hash，使用hash时会在链接中添加pwd参数和pwd的hash，使用local时会在本地存储密码，且使用原链接访问，不会拼接pwd参数和pwd的hash。
 storagePwdName: 'tmp_noire_pwd',//密码存储的名称，使用local方式存储密码能通过该值获取对应的密码
-originalLink:true,//是否保留原始链接，当参数值为true时，会保留原始链接，不会拼接pwd参数和pwd的hash，以解决部分网站路由跳转不对的问题。注意：此参数现已被storage: 'local'所替代，无需设置。
 replaceHost: 'drive.noire.cc',//替换链接的host，用于替换链接中的host，解决部分网站路由跳转不对的问题
 },
 ```
@@ -110,6 +113,9 @@ replaceHost: 'drive.noire.cc',//替换链接的host，用于替换链接中的ho
 
 
 ### PANAI
+
+**v2.2.1** 更新文档，自动识别未知网盘函数重命名为inferPanLink
+
 **v2.2.0** 新增自动识别未知网盘功能（实验性功能，需在设置中打开），未知网盘也可以进行密码填充功能，优化密码输入框和提交按钮识别逻辑。支持116盘、nitroflare
 
 **v2.1.9** 链接中的点、冒号、斜杠等中文词自动转换为对应的字符

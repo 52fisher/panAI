@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手
 // @namespace         https://github.com/52fisher/panAI
-// @version           2.2.0
+// @version           2.2.1
 // @author            YouXiaoHou,52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。支持识别 ✅百度网盘 ✅阿里云盘 ✅腾讯微云 ✅蓝奏云 ✅天翼云盘 ✅移动云盘 ✅迅雷云盘 ✅123云盘 ✅360云盘 ✅115网盘 ✅奶牛快传 ✅城通网盘 ✅夸克网盘 ✅FlowUs息流 ✅Chrome 扩展商店 ✅Edge 扩展商店 ✅Firefox 扩展商店 ✅Windows 应用商店。
 // @license           AGPL-3.0-or-later
@@ -534,7 +534,7 @@
             }
             if (isPanLinkBackup && !link) {
                 //未识别到链接，备用方案：不依赖已知网盘域名白名单的智能推测
-                if (!this.isPanLinkBackup(text)) {
+                if (!this.inferPanLink(text)) {
                     return;
                 }
                 linkObj = this.parseLink(text, false, true);
@@ -644,7 +644,7 @@
          * @param {string} link - 待检测的链接字符串
          * @returns {boolean} - 返回true表示推测为网盘链接，false表示推测为非网盘链接
          */
-        isPanLinkBackup(text) {
+        inferPanLink(text) {
             if (!text || typeof text !== 'string') {
                 return false;
             }
@@ -875,7 +875,7 @@
             // 优化：处理未知网盘的密码填充逻辑
             if (isPanLinkBackup && !panType && pwd) {
                 // 【优化】更全面地查找可能的密码输入框
-               const passwordInputSelectors = [
+                const passwordInputSelectors = [
                     'input[type=password]',
                     'input.pwd',
                     'input.password',
@@ -889,85 +889,85 @@
                     'input[placeholder*=access]',
                     'input[placeholder*=code]'
                 ];
-                this.doFillAction(passwordInputSelectors, [], pwd,true);
+                this.doFillAction(passwordInputSelectors, [], pwd, true);
                 //填充完成后清除密码
                 util.setValue('tmp_common_pwd', '');
                 return;
             }
         },
         // 在密码输入框附近查找提交按钮
-findNearbySubmitButton(inputElement) {
-    // 查找提交按钮的选择器列表
-    const submitButtonSelectors = [
-        'button',
-        'input[type=submit]',
-        'input[type=button]',
-        '.submit',
-        '.submit-btn',
-        '.btn-submit',
-        '.access-btn',
-        '.confirm-btn',
-        '.ok-btn',
-        '.button',
-        '.btn',
-        '[class*=submit]',
-        '[class*=access]',
-        '[class*=confirm]',
-        '[class*=ok]',
-        '[class*=button]',
-        '[class*=btn]',
-        '[id*=submit]',
-        '[id*=access]',
-        '[id*=confirm]',
-        '[id*=ok]',
-        '[id*=button]',
-        '[id*=btn]'
-    ];
-    
-    // 1. 首先检查输入框的父元素内是否有提交按钮
-    let parentElement = inputElement.parentElement;
-    let depth = 0;
-    const maxDepth = 3; // 最多向上查找3层父元素
-    
-    while (parentElement && depth < maxDepth) {
-        for (const selector of submitButtonSelectors) {
-            const buttons = parentElement.querySelectorAll(selector);
-            for (const button of buttons) {
-                // 检查按钮是否可见且可能是提交按钮
-                if (!util.isHidden(button)) {
-                    // 检查按钮文本或属性是否包含提交相关的关键词
-                    const buttonText = (button.textContent || button.value || button.innerText || '').toLowerCase();
-                    const buttonType = button.type ? button.type.toLowerCase() : '';
-                    
-                    if (buttonType === 'submit' || 
-                        buttonText.includes('提交') || 
-                        buttonText.includes('确认') || 
-                        buttonText.includes('登录') || 
-                        buttonText.includes('access') || 
-                        buttonText.includes('ok') || 
-                        buttonText.includes('go') || 
-                        buttonText.includes('enter')) {
-                        return button;
+        findNearbySubmitButton(inputElement) {
+            // 查找提交按钮的选择器列表
+            const submitButtonSelectors = [
+                'button',
+                'input[type=submit]',
+                'input[type=button]',
+                '.submit',
+                '.submit-btn',
+                '.btn-submit',
+                '.access-btn',
+                '.confirm-btn',
+                '.ok-btn',
+                '.button',
+                '.btn',
+                '[class*=submit]',
+                '[class*=access]',
+                '[class*=confirm]',
+                '[class*=ok]',
+                '[class*=button]',
+                '[class*=btn]',
+                '[id*=submit]',
+                '[id*=access]',
+                '[id*=confirm]',
+                '[id*=ok]',
+                '[id*=button]',
+                '[id*=btn]'
+            ];
+
+            // 1. 首先检查输入框的父元素内是否有提交按钮
+            let parentElement = inputElement.parentElement;
+            let depth = 0;
+            const maxDepth = 3; // 最多向上查找3层父元素
+
+            while (parentElement && depth < maxDepth) {
+                for (const selector of submitButtonSelectors) {
+                    const buttons = parentElement.querySelectorAll(selector);
+                    for (const button of buttons) {
+                        // 检查按钮是否可见且可能是提交按钮
+                        if (!util.isHidden(button)) {
+                            // 检查按钮文本或属性是否包含提交相关的关键词
+                            const buttonText = (button.textContent || button.value || button.innerText || '').toLowerCase();
+                            const buttonType = button.type ? button.type.toLowerCase() : '';
+
+                            if (buttonType === 'submit' ||
+                                buttonText.includes('提交') ||
+                                buttonText.includes('确认') ||
+                                buttonText.includes('登录') ||
+                                buttonText.includes('access') ||
+                                buttonText.includes('ok') ||
+                                buttonText.includes('go') ||
+                                buttonText.includes('enter')) {
+                                return button;
+                            }
+                        }
                     }
                 }
+
+                parentElement = parentElement.parentElement;
+                depth++;
             }
-        }
-        
-        parentElement = parentElement.parentElement;
-        depth++;
-    }
-    
-    // 2. 如果在父元素内没有找到，检查整个页面
-    for (const selector of submitButtonSelectors) {
-        const button = document.querySelector(selector);
-        if (button && !util.isHidden(button)) {
-            return button;
-        }
-    }
-    
-    return null;
-},
-        doFillAction(inputSelector, buttonSelector, pwd,isPanLinkBackup=false) {
+
+            // 2. 如果在父元素内没有找到，检查整个页面
+            for (const selector of submitButtonSelectors) {
+                const button = document.querySelector(selector);
+                if (button && !util.isHidden(button)) {
+                    return button;
+                }
+            }
+
+            return null;
+        },
+        doFillAction(inputSelector, buttonSelector, pwd, isPanLinkBackup = false) {
             let attempt = 0;          // 尝试次数
             const maxAttempts = 10;   // 最大尝试次数
             const baseDelay = 800;    // 基础延迟时间(ms)
@@ -986,7 +986,7 @@ findNearbySubmitButton(inputElement) {
 
                 try {
                     let input = util.query(inputSelector);
-                    let button =isPanLinkBackup? this.findNearbySubmitButton(input):util.query(buttonSelector);
+                    let button = isPanLinkBackup ? this.findNearbySubmitButton(input) : util.query(buttonSelector);
                     if (input && !util.isHidden(input)) {
                         // 找到输入框并可见，执行填充操作
                         let titletips = attempt === 1 ? 'AI已识别到密码！正自动帮您填写' : 'AI已识别到密码！正自动帮您重试 +' + attempt + ' 次';
