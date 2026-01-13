@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name              网盘智能识别助手
+// @name              网盘智能识别助手（持续更新版）
 // @namespace         https://github.com/52fisher/panAI
 // @version           2.2.1
 // @author            YouXiaoHou,52fisher

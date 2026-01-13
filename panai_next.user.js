@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手(NEXT)
 // @namespace         https://github.com/52fisher/panAI
-// @version           3.0.0
+// @version           3.1.0
 // @author            YouXiaoHou,52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。
 // @license           AGPL-3.0-or-later
@@ -66,139 +66,293 @@
             opacity: 0;
             transition: opacity 0.3s ease;
             pointer-events: none;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
         }
         .panai-dialog-overlay.active {
             opacity: 1;
             pointer-events: auto;
         }
         .panai-dialog-content {
-            background: white;
-            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
             width: fit-content;
             max-width: 500px;
-            box-shadow: 10px 10px 24px 6px rgba(0,0,0,0.1);
-            transform: translateY(-20px);
-            transition: transform 0.3s ease;
+            min-width: 320px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            transform: translateY(-20px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
         }
         .panai-dialog-overlay.active .panai-dialog-content {
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
         }
         .panai-dialog-header {
-            padding: 16px 20px;
+            padding: 20px 24px 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: none;
         }
         .panai-dialog-title {
             margin: 0;
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 600;
-            color: #333;
+            color: #1f2937;
+            line-height: 1.4;
         }
         .panai-dialog-close {
             background: none;
             border: none;
-            font-size: 20px;
+            font-size: 24px;
             cursor: pointer;
-            color: #999;
-            padding: 0 5px;
+            color: #9ca3af;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .panai-dialog-close:hover {
-            color: #333;
+            color: #374151;
+            background: rgba(0, 0, 0, 0.05);
         }
         .panai-dialog-body {
-            padding: 0 20px;
-            max-height: 70vh;
+            padding: 20px 24px;
+            max-height: 60vh;
             overflow-y: auto;
+            color: #4b5563;
+            line-height: 1.6;
+            font-size: 14px;
         }
         .panai-dialog-footer {
-            padding: 20px;
+            padding: 0 24px 20px;
             display: flex;
-            justify-content: center;
-            gap: 10px;
+            justify-content: flex-end;
+            gap: 12px;
+            background: rgba(249, 250, 251, 0.8);
+            border-top: 1px solid rgba(229, 231, 235, 0.8);
+            margin-top: 0;
         }
         .panai-dialog-footer button {
-            padding: 6px 16px;
-            border-radius: 4px;
+            padding: 10px 20px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: 500;
             transition: all 0.2s ease;
+            border: none;
+            min-width: 80px;
+            position: relative;
+            overflow: hidden;
+        }
+        .panai-dialog-footer button:active {
+            transform: translateY(1px);
+        }
+        .panai-dialog-footer button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+        .panai-dialog-footer button:hover::before {
+            left: 100%;
         }
         .panai-cancel-btn {
-            background: #f5f5f5;
-            border: 1px solid #ddd;
-            color: #666;
+            background: #f8f9fa;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
         }
         .panai-cancel-btn:hover {
-            background: #eee;
+            background: #f3f4f6;
+            color: #374151;
+            border-color: #d1d5db;
         }
         .panai-confirm-btn {
-            background: #2778c4;
-            border: 1px solid #2778c4;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
             color: white;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
         }
         .panai-confirm-btn:hover {
-            background: #1e64b2;
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
         }
         .panai-deny-btn {
-            background: #f59e0b;
-            border: 1px solid #f59e0b;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
             color: white;
+            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
         }
         .panai-deny-btn:hover {
-            background: #d97706;
+            background: linear-gradient(135deg, #d97706, #b45309);
+            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.4);
         }
         .panai-toast {
             position: fixed;
-            top: 20px;
+            top: 24px;
             left: 50%;
-            transform: translateX(-50%);
-            background: #333;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(17, 24, 39, 0.95);
             color: white;
-            padding: 10px 20px;
-            border-radius: 4px;
+            padding: 12px 24px;
+            border-radius: 8px;
             z-index: 100001;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             pointer-events: none;
-            max-width: 80%;
+            max-width: 400px;
             text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .panai-toast.active {
             opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
         .panai-toast.success {
-            background: #F0F9EB;
-            color:#67C23A;
+            background: rgba(34, 197, 94, 0.95);
+            color: white;
         }
         .panai-toast.error {
-            background: #FEF0F0;
-            color:#F56C6C;
+            background: rgba(239, 68, 68, 0.95);
+            color: white;
         }
         .panai-toast.info {
-            background: #FDF6EC;
-            color:#E6A23C;
+            background: rgba(59, 130, 246, 0.95);
+            color: white;
         }
         .panai-timer-bar {
             height: 3px;
-            background: #2778c4;
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
             position: absolute;
             bottom: 0;
             left: 0;
             width: 100%;
             transition: width linear;
+            border-radius: 0 0 12px 12px;
         }
         .panai-dialog-body textarea,.panai-dialog-body input[type="text"], .panai-dialog-body input[type="range"] {
             width: 100%;
-            padding: 8px 12px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
             box-sizing: border-box;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+        .panai-dialog-body textarea:focus,.panai-dialog-body input[type="text"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
        .panai-dialog-body textarea {
             min-height: 100px;
             resize: vertical;
+        }
+        .panai-dialog-body input[type="range"] {
+            padding: 0;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .panai-dialog-body input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .panai-dialog-body input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 640px) {
+            .panai-dialog-content {
+                max-width: 90vw;
+                min-width: 280px;
+                margin: 20px;
+            }
+            .panai-dialog-header {
+                padding: 16px 20px 0;
+            }
+            .panai-dialog-body {
+                padding: 16px 20px;
+                max-height: 50vh;
+            }
+            .panai-dialog-footer {
+                padding: 0 20px 16px;
+                flex-direction: column-reverse;
+                gap: 8px;
+            }
+            .panai-dialog-footer button {
+                width: 100%;
+                margin: 0;
+            }
+            .panai-toast {
+                max-width: 90vw;
+                margin: 0 20px;
+            }
+        }
+        
+        /* 深色模式适配 */
+        @media (prefers-color-scheme: dark) {
+            .panai-dialog-content {
+                background: rgba(31, 41, 55, 0.95);
+                border-color: rgba(255, 255, 255, 0.1);
+            }
+            .panai-dialog-title {
+                color: #f9fafb;
+            }
+            .panai-dialog-body {
+                color: #d1d5db;
+            }
+            .panai-dialog-footer {
+                background: rgba(17, 24, 39, 0.8);
+                border-top-color: rgba(255, 255, 255, 0.1);
+            }
+            .panai-cancel-btn {
+                background: rgba(55, 65, 81, 0.8);
+                color: #d1d5db;
+                border-color: rgba(255, 255, 255, 0.1);
+            }
+            .panai-cancel-btn:hover {
+                background: rgba(75, 85, 99, 0.8);
+                color: #f9fafb;
+            }
+            .panai-dialog-body textarea,.panai-dialog-body input[type="text"] {
+                background: rgba(55, 65, 81, 0.8);
+                border-color: rgba(255, 255, 255, 0.1);
+                color: #f9fafb;
+            }
+            .panai-dialog-body textarea:focus,.panai-dialog-body input[type="text"]:focus {
+                border-color: #3b82f6;
+            }
         }
     `
     };
@@ -594,7 +748,7 @@
     }
 
     /**
-     * 初始化网盘配置（在util初始化之后调用）
+     * 初始化网盘配置
      */
     function initPanConfigs() {
         PAN_CONFIGS = {
@@ -686,8 +840,8 @@
                 storagePwdName: 'tmp_360_pwd'
             },
             '115': {
-                reg: /((?:https?:\/\/)?115\.com\/s\/[a-zA-Z\d]+)/,
-                host: /115\.com/,
+                reg: /((?:https?:\/\/)?115(?:cdn)?\.com\/s\/[a-zA-Z\d]+)/,
+                host: /115(?:cdn)?\.com/,
                 input: ['.form-decode input'],
                 button: ['.form-decode .submit a'],
                 name: '115网盘',
@@ -821,8 +975,143 @@
                 name: '爱丽丝的记事本',
                 storage: 'local',
                 storagePwdName: 'tmp_noire_pwd',
-                originalLink: true,
+                replaceHost: 'drive.noire.cc'
             },
+            '520pan': {
+                reg: /(?:https?:\/\/)?520pan\.com\/s\/\w+/,
+                host: /520pan\.com/,
+                input: ['input[type=password]'],
+                button: ['button[type=submit]'],
+                name: '520云盘',
+                storage: 'local',
+                storagePwdName: 'tmp_520pan_pwd'
+            },
+            '567pan': {
+                reg: /(?:https?:\/\/)?567pan\.com\/s\/\w+/,
+                host: /567pan\.com/,
+                input: ['input[type=password]'],
+                button: ['button[type=submit]'],
+                name: '567盘',
+                storage: 'local',
+                storagePwdName: 'tmp_567pan_pwd'
+            },
+            'ayunpan': {
+                reg: /(?:https?:\/\/)?ayunpan\.com\/s\/\w+/,
+                host: /ayunpan\.com/,
+                input: ['input[type=password]'],
+                button: ['button[type=submit]'],
+                name: 'AYunPan',
+                storage: 'local',
+                storagePwdName: 'tmp_ayunpan_pwd'
+            },
+            'aiyou': {
+                reg: /(?:https?:\/\/)?aiyou\.com\/s\/\w+/,
+                host: /aiyou\.com/,
+                input: ['input[type=password]'],
+                button: ['button[type=submit]'],
+                name: '爱优网盘',
+                storage: 'local',
+                storagePwdName: 'tmp_aiyou_pwd'
+            },
+            'feimao': {
+                reg: /(?:https?:\/\/)?feimao\.com\/s\/\w+/,
+                host: /feimao\.com/,
+                input: ['input[type=password]'],
+                button: ['button[type=submit]'],
+                name: '飞猫盘',
+                storage: 'local',
+                storagePwdName: 'tmp_feimao_pwd'
+            },
+            'yoyun': {
+                reg: /(?:https?:\/\/)?yoyun\.com\/s\/\w+/,
+                host: /yoyun\.com/,
+                input: ['input[type=password]'],
+                button: ['button[type=submit]'],
+                name: '优云下载',
+                storage: 'local',
+                storagePwdName: 'tmp_yoyun_pwd'
+            },
+            'guizu': {
+                reg: /(?:https?:\/\/)?guizu\.com\/s\/\w+/,
+                host: /guizu\.com/,
+                input: ['input[type=password]'],
+                button: ['button[type=submit]'],
+                name: '贵族网盘',
+                storage: 'local',
+                storagePwdName: 'tmp_guizu_pwd'
+            },
+            'xunniu': {
+                reg: /(?:https?:\/\/)?xunniu\.com\/s\/\w+/,
+                host: /xunniu\.com/,
+                input: ['input[type=password]'],
+                button: ['button[type=submit]'],
+                name: '迅牛网盘',
+                storage: 'local',
+                storagePwdName: 'tmp_xunniu_pwd'
+            },
+            'xueqiu': {
+                reg: /(?:https?:\/\/)?xueqiu\.com\/s\/\w+/,
+                host: /xueqiu\.com/,
+                input: ['input[type=password]'],
+                button: ['button[type=submit]'],
+                name: '雪球云盘',
+                storage: 'local',
+                storagePwdName: 'tmp_xueqiu_pwd'
+            },
+            '77file': {
+                reg: /(?:https?:\/\/)?77file\.com\/s\/\w+/,
+                host: /77file\.com/,
+                input: ['input[type=password]'],
+                button: ['button[type=submit]'],
+                name: '77file',
+                storage: 'local',
+                storagePwdName: 'tmp_77file_pwd'
+            },
+            'ownfile': {
+                reg: /(?:https?:\/\/)?ownfile\.com\/s\/\w+/,
+                host: /ownfile\.com/,
+                input: ['input[type=password]'],
+                button: ['button[type=submit]'],
+                name: 'OwnFile',
+                storage: 'local',
+                storagePwdName: 'tmp_ownfile_pwd'
+            },
+            'feiyun': {
+                reg: /(?:https?:\/\/)?feiyun\.com\/s\/\w+/,
+                host: /feiyun\.com/,
+                input: ['input[type=password]'],
+                button: ['button[type=submit]'],
+                name: '飞云网盘',
+                storage: 'local',
+                storagePwdName: 'tmp_feiyun_pwd'
+            },
+            'yifile': {
+                reg: /(?:https?:\/\/)?yifile\.com\/s\/\w+/,
+                host: /yifile\.com/,
+                input: ['input[type=password]'],
+                button: ['button[type=submit]'],
+                name: 'YiFile',
+                storage: 'local',
+                storagePwdName: 'tmp_yifile_pwd'
+            },
+            'dufile': {
+                reg: /(?:https?:\/\/)?dufile\.com\/s\/\w+/,
+                host: /dufile\.com/,
+                input: ['input[type=password]'],
+                button: ['button[type=submit]'],
+                name: 'duFile',
+                storage: 'local',
+                storagePwdName: 'tmp_dufile_pwd'
+            },
+            '116pan': {
+                reg: /(?:https?:\/\/)?116pan\.com\/s\/\w+/,
+                host: /116pan\.com/,
+                input: ['input[type=password]'],
+                button: ['button[type=submit]'],
+                name: '116盘',
+                storage: 'local',
+                storagePwdName: 'tmp_116pan_pwd'
+            }
         };
     }
 
@@ -846,11 +1135,11 @@
     }
 
     /**
-     * 获取选中内容的HTML或文本
-     * @param {Selection} selection - 选择对象
-     * @param {boolean} isDOM - 是否返回DOM对象
-     * @returns {string|HTMLElement} 选中的内容
-     */
+         * 获取选中内容的HTML或文本
+         * @param {Selection} selection - 选择对象
+         * @param {boolean} isDOM - 是否返回DOM对象
+         * @returns {string|HTMLElement} 选中的内容
+         */
     function getSelectionContent(selection, isDOM = false) {
         const testDiv = document.createElement("div");
         if (!selection.isCollapsed) {
@@ -918,7 +1207,7 @@
                 util.clog(`文本识别结果：${name} 链接：${link} 密码：${pwd} 耗时：${timeCost}毫秒`);
 
                 // 显示提示并处理用户操作
-                handleLinkDetection(linkObj, link, name, pwd);
+                handleLinkDetection(linkObj, pwd);
             }
         }
     }
@@ -926,59 +1215,220 @@
     /**
      * 处理检测到的链接
      * @param {Object} linkObj - 链接对象
-     * @param {string} link - 链接地址
-     * @param {string} name - 网盘名称
-     * @param {string} pwd - 密码
+     * @param {string} pwd - 提取码
      */
-    function handleLinkDetection(linkObj, link, name, pwd) {
-        // 更新成功识别次数
-        util.setValue(
-            'setting_success_times',
-            util.getValue('setting_success_times') + 1
-        );
-
-        // 获取实际的storage值（如果是函数则执行）
-        const storageType = typeof linkObj.storage === 'function'
-            ? linkObj.storage()
-            : linkObj.storage;
-
-        // 配置弹窗选项
-        const options = {
-            title: `发现<span style="color: #2778c4;margin: 0 5px;">${name}</span>链接`,
-            html: `<span style="font-size: 0.8em;">${!!pwd ? '密码：' + pwd : '是否打开？'}</span>`,
-            confirmButtonText: '打开',
-            cancelButtonText: '关闭'
-        };
-
-        // 添加倒计时设置
-        if (util.getValue('setting_timer_open')) {
-            options.timer = util.getValue('setting_timer');
+    function handleLinkDetection(linkObj, pwd) {
+        // 检查是否启用未知网盘检测
+        const isPanLinkBackup = util.getValue('setting_auto_detect_unknown_disk');
+        // 如果链接为空且启用了未知网盘检测，尝试使用备用检测
+        if (!linkObj.link && isPanLinkBackup) {
+            const inferredResult = parseUnknownPanLink(lastText);
+            if (inferredResult.link) {
+                linkObj = inferredResult;
+            }
         }
 
-        // 显示弹窗并处理用户选择
-        dialog.confirm(options).then(res => {
+        if (!linkObj.link) {
+            dialog.toast({
+                title: '未检测到网盘链接',
+                icon: 'error',
+                timer: 3000
+            });
+            return;
+        }
+
+        const timer = util.getValue('setting_timer');
+        const timerOpen = util.getValue('setting_timer_open');
+
+        const html = `
+            <div style="font-size: 14px;line-height: 22px;">
+                <div style="margin-bottom: 10px;">
+                    <span style="font-weight: 700;color: #333;">网盘：</span>
+                    <span style="color: #2778c4;">${linkObj.name}</span>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <span style="font-weight: 700;color: #333;">链接：</span>
+                    <span style="color: #2778c4;word-break: break-all;">${linkObj.link}</span>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <span style="font-weight: 700;color: #333;">提取码：</span>
+                    <span style="color: #e74c3c;font-weight: 700;">${pwd || '无'}</span>
+                </div>
+                ${timerOpen ? `<div style="color: #999;font-size: 12px;text-align: center;margin-top: 10px;">${timer / 1000}秒后自动打开</div>` : ''}
+            </div>
+        `;
+
+        dialog.confirm({
+            title: '检测到网盘链接',
+            html: html,
+            confirmButtonText: '打开',
+            cancelButtonText: '取消',
+            timer: timerOpen ? timer : null
+        }).then(res => {
             lastText = 'lorem&';
-            window.getSelection().empty();
 
-            // 用户确认或倒计时结束
-            if (res.isConfirmed || res.dismiss === 'timer') {
-                // 本地存储密码
-                if (storageType === "local") {
-                    util.setValue(linkObj.storagePwdName, pwd);
-                }
+            // 防御式编程
+            if (!res.isConfirmed && res.dismiss !== 'timer') {
+                return;
+            }
 
-                // 打开链接
-                const active = util.getValue('setting_active_in_front');
-                if (pwd && !linkObj.originalLink) {
-                    const extraLink = link.includes('?')
-                        ? `${link}&pwd=${pwd}#${pwd}`
-                        : `${link}?pwd=${pwd}#${pwd}`;
-                    GM_openInTab(extraLink, { active });
-                } else {
-                    GM_openInTab(link, { active });
+            // 获取是否在前台打开的设置
+            const active = util.getValue('setting_active_in_front');
+            let targetLink = linkObj.link;
+
+            // 密码为空时，直接打开链接
+            if (!pwd) {
+                GM_openInTab(targetLink, { active });
+                return;
+            }
+            //linkObj.storage可能是function/local/hash，如果是function，需要执行
+            const storage = typeof linkObj.storage === 'function' ? linkObj.storage() : linkObj.storage;
+            // 存储方式为local时，将密码存储到本地存储
+            console.log('%cpanai_next.user.js:1133 storage', 'color: #007acc;', storage);
+            if (storage === "local") {
+                util.setValue(linkObj.storagePwdName, pwd);
+            } else if (storage === "hash") {
+                // 链接中没有#：使用三目运算符直接拼接pwd参数和#hash
+                targetLink = linkObj.link.includes('?')
+                    ? `${linkObj.link}&pwd=${pwd}#${pwd}`
+                    : `${linkObj.link}?pwd=${pwd}#${pwd}`;
+
+                // 若为hash模式：需要考虑框架路由情况
+                if (linkObj.link.includes('#')) {
+                    const hashIndex = linkObj.link.indexOf('#');
+                    const hashPart = linkObj.link.slice(hashIndex + 1);
+                    const urlPart = linkObj.link.slice(0, hashIndex);
+
+                    // 判断是否为框架路由模式
+                    const isFrameworkRoute = hashPart.startsWith('/') || hashPart.includes('?') || hashPart.includes('=');
+                    if (isFrameworkRoute) {
+                        targetLink = urlPart.includes('?')
+                            ? `${urlPart}&pwd=${pwd}#${hashPart}`
+                            : `${urlPart}?pwd=${pwd}#${hashPart}`;
+                    }
                 }
             }
+
+            // 打开标签页
+            GM_openInTab(targetLink, { active });
         });
+    }
+
+    /**
+        * 备用网盘链接检测函数 - 智能推测未知网盘链接
+        * @param {string} text - 待检测的文本
+        * @returns {boolean} - 是否为网盘链接
+        */
+    function inferPanLink(text) {
+        if (!text || typeof text !== 'string') {
+            return false;
+        }
+
+        // 清洗text，提取出链接
+        const linkMatch = text.match(/https?:\/\/[^\s]+/);
+        if (!linkMatch) return false;
+
+        const link = linkMatch[0];
+        const normalizedLink = link.trim().toLowerCase();
+
+        // 步骤1：检查是否为有效的HTTP/HTTPS链接
+        if (!/https?:\/\//.test(normalizedLink)) {
+            return false;
+        }
+
+        // 步骤2：提取链接的各个部分
+        const urlParts = {
+            protocol: normalizedLink.match(/^https?:\/\//)[0],
+            domain: normalizedLink.match(/^https?:\/\/([^\/]+)/)[1],
+            path: normalizedLink.replace(/^https?:\/\/[^\/]+/, ''),
+            full: normalizedLink
+        };
+
+        // 步骤3：检查链接中是否包含云存储相关关键词
+        const storageKeywords = [
+            'pan', 'yun', 'drive', 'cloud', 'share', 'file',
+            'download', 'storage', 'backup', 'sync', 'dropbox',
+            'mega', 'box', 'mediafire', 'zippyshare', '4shared'
+        ];
+
+        const hasStorageKeyword = storageKeywords.some(keyword =>
+            urlParts.domain.includes(keyword) || urlParts.path.includes(keyword)
+        );
+
+        // 步骤4：检查链接路径是否符合常见网盘模式
+        const commonPanPathPatterns = [
+            /\/s\/[a-zA-Z0-9]+/,          // /s/xxx 分享模式
+            /\/share\/[a-zA-Z0-9]+/,      // /share/xxx 分享模式
+            /\/file\/[a-zA-Z0-9]+/,       // /file/xxx 文件模式
+            /\/folder\/[a-zA-Z0-9]+/,     // /folder/xxx 文件夹模式
+            /\/download\/[a-zA-Z0-9]+/,   // /download/xxx 下载模式
+            /\/d\/[a-zA-Z0-9]+/,          // /d/xxx 直接访问模式
+            /\/public\/[a-zA-Z0-9]+/,     // /public/xxx 公开访问模式
+            /\/view\/[a-zA-Z0-9]+/,       // /view/xxx 查看模式
+            /file-\d+\.html/,             // file-xxx.html 静态页面模式
+            /#f?!?[a-zA-Z0-9!-]+/,        // Mega网盘模式
+            /\/viewfile/,                 // viewfile 查看文件模式
+        ];
+
+        const hasCommonPanPath = commonPanPathPatterns.some(pattern =>
+            pattern.test(urlParts.path)
+        );
+
+        // 步骤5：检查链接是否包含常见的网盘参数
+        const commonPanParams = ['pwd', 'code', 'access', 'key', 'token', 'shareid', 'surl'];
+        const hasCommonPanParam = commonPanParams.some(param =>
+            urlParts.full.includes(`?${param}=`) || urlParts.full.includes(`&${param}=`)
+        );
+
+        // 步骤6：检查域名结构是否暗示为云存储服务
+        const domainPatterns = [
+            /(?:pan|yun|drive|cloud|share|file|download)\.[a-zA-Z0-9]+\.(?:com|cn|net|org)/,
+            /[a-zA-Z0-9]+-(?:pan|yun|drive|cloud|share|file|download)\.(?:com|cn|net|org)/
+        ];
+
+        const hasPanDomainPattern = domainPatterns.some(pattern =>
+            pattern.test(urlParts.domain)
+        );
+
+        // 步骤7：检查链接长度和复杂度（网盘链接通常有特定的长度和复杂度）
+        const pathLength = urlParts.path.length;
+        const hasComplexPath = pathLength > 5 && pathLength < 50; // 合理的路径长度范围
+
+        // 综合评分：满足以下条件越多，越可能是网盘链接
+        let score = 0;
+        if (hasStorageKeyword) score++;
+        if (hasCommonPanPath) score++;
+        if (hasCommonPanParam) score++;
+        if (hasPanDomainPattern) score++;
+        if (hasComplexPath) score++;
+
+        // 根据评分判断：至少满足3个条件则认为是网盘链接
+        return score >= 3;
+    }
+
+    /**
+     * 解析未知网盘链接（备用模式）
+     * @param {string} text - 文本内容
+     * @returns {Object} 解析结果
+     */
+    function parseUnknownPanLink(text = '') {
+        const result = { name: '', link: '', storage: '', storagePwdName: '' };
+        if (!text) return result;
+
+        // 清洗text，提取出链接
+        const linkMatch = text.match(/https?:\/\/[A-Za-z0-9_\-\+.:?&@=/%#,;]*/);
+        if (linkMatch) {
+            try {
+                const url = new URL(linkMatch[0]);
+                result.link = url.href;
+                result.name = url.hostname.split('.').slice(-2)[0] || '未知网盘';
+                result.storagePwdName = "tmp_common_pwd";
+                result.storage = "local";
+            } catch {
+                // URL解析失败
+            }
+        }
+        return result;
     }
 
     /**
@@ -1014,9 +1464,10 @@
      * 解析文本中的网盘链接
      * @param {string} text - 文本内容
      * @param {boolean} autoCompletePrefix - 是否自动补全链接前缀
+     * @param {boolean} isPanLinkBackup - 是否为备用网盘链接模式
      * @returns {Object} 解析结果
      */
-    function parseLink(text = '', autoCompletePrefix = false) {
+    function parseLink(text = '', autoCompletePrefix = false, isPanLinkBackup = false) {
         const result = { name: '', link: '', storage: '', storagePwdName: '' };
         if (!text) return result;
 
@@ -1031,6 +1482,11 @@
             .replace(/[点點]/g, '.')
             .replace(/[\u4e00-\u9fa5()（）,\u200B，\uD83C-\uDBFF\uDC00-\uDFFF]/g, '')
             .replace(/lanzous/g, 'lanzouw'); // 修正lanzous打不开的问题
+
+        // 备用网盘链接模式
+        if (isPanLinkBackup) {
+            return parseUnknownPanLink(text);
+        }
 
         // 匹配网盘链接
         for (const name in PAN_CONFIGS) {
@@ -1097,7 +1553,6 @@
             .replace(/\u200B/g, '')
             .replace('%3A', ":")
             .replace(/(?:本帖)?隐藏的?内容[：:]?/, "");
-
         // 匹配提取码
         const match = text.match(CONSTANTS.PASSWORD_REGEX);
         return match ? match[0] : '';
@@ -1119,8 +1574,8 @@
     }
 
     /**
-     * 自动填写密码
-     */
+    * 自动填写密码
+    */
     function autoFillPassword() {
         // 从URL获取密码
         const queryPwd = util.parseQuery('pwd|p');
@@ -1155,57 +1610,36 @@
                 }
             }
         }
+
+        // 处理未知网盘的密码填充逻辑
+        const unknownPwd = util.getValue('tmp_common_pwd');
+        const isPanLinkBackup = util.getValue('setting_auto_detect_unknown_disk');
+
+        if (isPanLinkBackup && !panType && unknownPwd) {
+            // 更全面地查找可能的密码输入框
+            const passwordInputSelectors = [
+                'input[type=password]',
+                'input.pwd',
+                'input.password',
+                'input[class*=pwd]',
+                'input[class*=password]',
+                'input[id*=pwd]',
+                'input[id*=password]',
+                'input[placeholder*=密码]',
+                'input[placeholder*=pwd]',
+                'input[placeholder*=提取码]',
+                'input[placeholder*=access]',
+                'input[placeholder*=code]'
+            ];
+
+            // 使用增强的密码填写逻辑
+            fillPasswordAndSubmit(passwordInputSelectors, [], unknownPwd, true);
+
+            // 填充完成后清除密码
+            util.setValue('tmp_common_pwd', '');
+        }
     }
 
-    /**
-     * 填写密码并提交
-     * @param {string[]} inputSelectors - 输入框选择器
-     * @param {string[]} buttonSelectors - 按钮选择器
-     * @param {string} pwd - 密码
-     */
-    /* function fillPasswordAndSubmit(inputSelectors, buttonSelectors, pwd) {
-        let attempts = 10; // 最大尝试次数
-        const interval = setInterval(async () => {
-            attempts--;
-    
-            // 查找输入框和按钮
-            const input = util.query(inputSelectors);
-            const button = util.query(buttonSelectors);
-    
-            // 找到可见的输入框
-            if (input && !util.isHidden(input)) {
-                clearInterval(interval);
-    
-                // 显示提示 - 使用修复后的toast方法
-                dialog.toast({
-                    title: 'AI已识别到密码！正自动帮您填写',
-                    icon: 'success',
-                    timer: 2000
-                });
-    
-                // 填写密码
-                const lastValue = input.value;
-                input.value = pwd;
-    
-                // 触发输入事件（兼容Vue/React）
-                const event = new Event('input', { bubbles: true });
-                const tracker = input._valueTracker;
-                if (tracker) {
-                    tracker.setValue(lastValue);
-                }
-                input.dispatchEvent(event);
-    
-                // 自动点击提交按钮
-                if (util.getValue('setting_auto_click_btn')) {
-                    await util.sleep(1000); // 延迟1秒点击
-                    button.click();
-                }
-            } else if (attempts <= 0) {
-                // 超过最大尝试次数
-                clearInterval(interval);
-            }
-        }, 800); // 每800ms尝试一次
-    } */
 
     /**
      * 填写密码并提交（改进版）
@@ -1226,7 +1660,7 @@
             // 查找输入框和按钮
             const input = util.query(inputSelectors);
             const button = util.query(buttonSelectors);
-            
+
 
             // 填写密码逻辑（独立于按钮状态）
             if (input && !passwordFilled && !util.isHidden(input)) {
@@ -1383,7 +1817,7 @@
      * 显示设置框
      */
     function showSettingsBox() {
-        // 配置所有设置项（恢复缺失的设置项）
+        // 配置所有设置项（添加未知网盘检测设置）
         const settings = [
             {
                 id: 'S-Auto',
@@ -1400,46 +1834,42 @@
                 className: 'panai-setting-checkbox'
             },
             {
-                id: 'S-Timer-Open',
+                id: 'S-Timer',
                 storageKey: 'setting_timer_open',
                 type: 'checkbox',
-                label: '倒计时结束自动打开',
-                className: 'panai-setting-checkbox',
-                onChange: (value, elements) => {
-                    elements['Panai-Range-Wrapper'].style.display = value ? 'flex' : 'none';
-                }
-            },
-            {
-                id: 'Panai-Range-Wrapper',
-                type: 'wrapper',
-                label: `
-                <span>倒计时 <span id="Timer-Value">（{{timer}}秒）</span></span>
-                <input type="range" id="S-Timer" data-storage-key="setting_timer" min="0" max="10000" step="500" value="{{timer}}" style="width: 200px;">
-            `,
-                dependsOn: 'S-Timer-Open'
-            },
-            {
-                id: 'S-Text-As-Password',
-                storageKey: 'setting_text_as_password',
-                type: 'checkbox',
-                label: '超链接的文本内容作为密码（实验性）',
+                label: '倒计时结束后自动打开链接',
                 className: 'panai-setting-checkbox'
             },
             {
-                id: 'S-Auto-Complete',
+                id: 'S-Complete',
                 storageKey: 'setting_auto_complete',
                 type: 'checkbox',
-                label: '自动推导网盘链接(实验性)',
-                className: 'panai-setting-checkbox',
-                title: '目前仅支持百度、迅雷、夸克等网盘链接进行自动推导补全'
+                label: '自动补全链接前缀',
+                className: 'panai-setting-checkbox'
             },
             {
-                id: 'S-hotkeys',
-                storageKey: 'setting_hotkeys',
-                type: 'text',
-                label: '快捷键设置',
-                style: 'width: 100px;',
-                defaultValue: 'F1'
+                id: 'S-TextPwd',
+                storageKey: 'setting_text_as_password',
+                type: 'checkbox',
+                label: '将超链接文本作为提取码',
+                className: 'panai-setting-checkbox'
+            },
+            {
+                id: 'S-Unknown',
+                storageKey: 'setting_auto_detect_unknown_disk',
+                type: 'checkbox',
+                label: '智能识别未知网盘链接',
+                className: 'panai-setting-checkbox'
+            },
+            {
+                id: 'S-TimerValue',
+                storageKey: 'setting_timer',
+                type: 'range',
+                label: '倒计时时长(秒)',
+                min: 1,
+                max: 10,
+                step: 0.5,
+                className: 'panai-setting-range'
             }
         ];
 
