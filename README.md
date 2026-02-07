@@ -109,6 +109,7 @@ replaceHost: 'drive.noire.cc',//替换链接的host，用于替换链接中的ho
 ## 📖 更新日志
 
 ### PANAI-NEXT
+**v3.1.1** 新增yukaidi银盘、小蓝云盘、六一云盘的支持
 
 **v3.1.0** 新增自定义Dialog组件，完全替代sweetalert2库，提升弹窗性能和兼容性；新增inferPanLink智能推测网盘链接功能，通过7个条件综合评分≥3判定为网盘链接，支持识别未知域名网盘；新增14个小众网盘配置（520云盘、567盘、AYunPan、爱优网盘、飞猫盘、优云下载、贵族网盘、迅牛网盘、雪球云盘、77file、OwnFile、飞云网盘、YiFile、duFile、116盘）；新增"智能识别未知网盘链接"设置项。
 
@@ -116,6 +117,7 @@ replaceHost: 'drive.noire.cc',//替换链接的host，用于替换链接中的ho
 
 
 ### PANAI
+**v2.2.2** 新增yukaidi银盘、小蓝云盘、六一云盘的支持
 
 **v2.2.1** 更新文档，自动识别未知网盘函数重命名为inferPanLink
 
