@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手（持续更新版）
 // @namespace         https://github.com/52fisher/panAI
-// @version           2.2.1
+// @version           2.2.2
 // @author            YouXiaoHou,52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。支持识别 ✅百度网盘 ✅阿里云盘 ✅腾讯微云 ✅蓝奏云 ✅天翼云盘 ✅移动云盘 ✅迅雷云盘 ✅123云盘 ✅360云盘 ✅115网盘 ✅奶牛快传 ✅城通网盘 ✅夸克网盘 ✅FlowUs息流 ✅Chrome 扩展商店 ✅Edge 扩展商店 ✅Firefox 扩展商店 ✅Windows 应用商店。
 // @license           AGPL-3.0-or-later
@@ -307,6 +307,21 @@
             reg: /((?:https?:\/\/)?qfile\.qq\.com\/q\/[0-9a-zA-Z]+)/,
             host: /qfile\.qq\.com/,
             name: 'QQ闪传',
+        },
+        'yukaidi': {
+            reg: /((?:https?:\/\/)?silver\.yukaidi\.com\/s\/[a-zA-Z\d]+)/,
+            host: /silver\.yukaidi\.com/,
+            name: 'yukaidi银盘',
+        },
+        'pansod': {
+            reg: /((?:https?:\/\/)?pan\.lansod\.cn\/s\/[a-zA-Z\d]+)/,
+            host: /pan\.lansod\.cn/,
+            name: ' 小蓝云盘',
+        },
+        'now61': {
+            reg: /((?:https?:\/\/)?www\.now61\.cn\/s\/[a-zA-Z\d]+)/,
+            host: /www\.now61\.cn/,
+            name: '六一云盘',
         },
         '520vip': {
             reg: /((?:https?:\/\/)?www\.(?:520-vip|eos-53)\.com\/file-\d+\.html)/,

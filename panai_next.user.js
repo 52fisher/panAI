@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手(NEXT)
 // @namespace         https://github.com/52fisher/panAI
-// @version           3.1.0
+// @version           3.1.1
 // @author            YouXiaoHou,52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。
 // @license           AGPL-3.0-or-later
@@ -911,6 +911,21 @@
                 button: ["button[class*='ShareReceivePC--submit-btn'", '.input-wrap button'],
                 name: 'UC云盘',
                 storage: 'hash'
+            },
+            'yukaidi': {
+                reg: /((?:https?:\/\/)?silver\.yukaidi\.com\/s\/[a-zA-Z\d]+)/,
+                host: /silver\.yukaidi\.com/,
+                name: 'yukaidi银盘',
+            },
+            'pansod': {
+                reg: /((?:https?:\/\/)?pan\.lansod\.cn\/s\/[a-zA-Z\d]+)/,
+                host: /pan\.lansod\.cn/,
+                name: ' 小蓝云盘',
+            },
+            'now61': {
+                reg: /((?:https?:\/\/)?www\.now61\.cn\/s\/[a-zA-Z\d]+)/,
+                host: /www\.now61\.cn/,
+                name: '六一云盘',
             },
             'jianguoyun': {
                 reg: /((?:https?:\/\/)?www\.jianguoyun\.com\/p\/[\w-]+)/,
