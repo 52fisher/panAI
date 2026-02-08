@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手(NEXT)
 // @namespace         https://github.com/52fisher/panAI
-// @version           3.1.1
+// @version           3.1.2
 // @author            YouXiaoHou,52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。
 // @license           AGPL-3.0-or-later
@@ -842,8 +842,8 @@
             '115': {
                 reg: /((?:https?:\/\/)?115(?:cdn)?\.com\/s\/[a-zA-Z\d]+)/,
                 host: /115(?:cdn)?\.com/,
-                input: ['.form-decode input'],
-                button: ['.form-decode .submit a'],
+                input: ['input[placeholder="请输入访问码"]'],
+                button: ['button.w-full'],
                 name: '115网盘',
                 storage: 'hash'
             },
@@ -1643,6 +1643,7 @@
                 'input[placeholder*=密码]',
                 'input[placeholder*=pwd]',
                 'input[placeholder*=提取码]',
+                'input[placeholder*=访问码]',
                 'input[placeholder*=access]',
                 'input[placeholder*=code]'
             ];
