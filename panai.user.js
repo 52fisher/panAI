@@ -213,14 +213,6 @@
             name: '115网盘',
             storage: 'hash'
         },
-        'cowtransfer': {
-            reg: /((?:https?:\/\/)?(?:[a-zA-Z\d-.]+)?cowtransfer\.com\/s\/[a-zA-Z\d]+)/,
-            host: /(?:[a-zA-Z\d-.]+)?cowtransfer\.com/,
-            input: ['.receive-code-input input'],
-            button: ['.open-button'],
-            name: '奶牛快传',
-            storage: 'hash'
-        },
         'ctfile': {
             reg: /((?:https?:\/\/)?(?:[a-zA-Z\d-.]+)?(?:ctfile|545c|u062|ghpym)\.com\/\w+\/[a-zA-Z\d-]+)/,
             host: /(?:[a-zA-Z\d-.]+)?(?:ctfile|545c|u062)\.com/,
@@ -517,7 +509,7 @@
             //自动推导网盘前缀的开关
             const isAutoComplete = util.getValue('setting_auto_complete');
             const isTextAsPassword = util.getValue('setting_text_as_password');
-            const isPanLinkBackup = util.getValue('setting_enable_pan_backup');
+            const isPanLinkBackup = util.getValue('setting_auto_detect_unknown_disk');
             //选择相同文字或空不识别
             if (text === this.lastText || text === '') {
                 return;
@@ -664,7 +656,9 @@
                 return false;
             }
             //清洗text,提取出链接
-            let link = text.match(/https?:\/\/[^\s]+/)[0];
+            const linkMatch = text.match(/https?:\/\/[^\s]+/);
+            if (!linkMatch) return false;
+            let link = linkMatch[0];
             // 规范化链接
             const normalizedLink = link.trim().toLowerCase();
 
@@ -1030,7 +1024,7 @@
                         if (util.getValue('setting_auto_click_btn')) {
                             await util.sleep(1000); //1秒后点击按钮
                             //若button被禁用，则需要重试
-                            if (!button.disabled) {
+                            if (button && !button.disabled) {
                                 button.click();
                                 return; // 成功完成操作，不再重试
                             }

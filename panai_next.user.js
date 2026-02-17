@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name              网盘智能识别助手(NEXT)
 // @namespace         https://github.com/52fisher/panAI
-// @version           3.1.2
-// @author            YouXiaoHou,52fisher
+// @version           3.1.3
+// @author            52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。
 // @license           AGPL-3.0-or-later
 // @homepage          https://github.com/52fisher/panAI
@@ -33,7 +33,9 @@
             { name: 'setting_auto_complete', value: false },
             { name: 'setting_text_as_password', value: false },
             { name: 'setting_timer', value: 5000 },
-            { name: 'setting_hotkeys', value: 'F1' }
+            { name: 'setting_hotkeys', value: 'F1' },
+            { name: 'setting_link_management', value: false },
+            { name: 'setting_link_history', value: [] }
         ],
         CUSTOM_CLASSES: {
             dialog: 'panai-dialog',
@@ -50,7 +52,7 @@
         },
         PASSWORD_REGEX: /wss:[a-zA-Z0-9]+|(?<=\s*(?:密|提取|访问|訪問|key|password|pwd|#|\?p=|\?code=)\s*[码碼]?\s*[：:=]?\s*)[a-zA-Z0-9]{3,8}/i,
         PLUGIN_STYLES: `
-        .panai-setting-label { display: flex;align-items: center;justify-content: space-between;padding-top: 20px; }
+        .panai-setting-label { display: flex;align-items:baseline;justify-content: space-between;padding-top: 20px; }
         .panai-setting-checkbox { width: 16px;height: 16px; }
         .panai-dialog-overlay {
             position: fixed;
@@ -271,6 +273,7 @@
             border-radius: 3px;
             outline: none;
             -webkit-appearance: none;
+            width: fit-content;
         }
         .panai-dialog-body input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
@@ -752,6 +755,7 @@
      */
     function initPanConfigs() {
         PAN_CONFIGS = {
+            //主流网盘
             'baidu': {
                 reg: /((?:https?:\/\/)?(?:e?yun|pan)\.baidu\.com\/(doc\/|enterprise\/)?(?:s\/[\w~]*(((-)?\w*)*)?|share\/\S{4,}))/,
                 host: /(pan|e?yun)\.baidu\.com/,
@@ -847,14 +851,6 @@
                 name: '115网盘',
                 storage: 'hash'
             },
-            'cowtransfer': {
-                reg: /((?:https?:\/\/)?(?:[a-zA-Z\d-.]+)?cowtransfer\.com\/s\/[a-zA-Z\d]+)/,
-                host: /(?:[a-zA-Z\d-.]+)?cowtransfer\.com/,
-                input: ['.receive-code-input input'],
-                button: ['.open-button'],
-                name: '奶牛快传',
-                storage: 'hash'
-            },
             'ctfile': {
                 reg: /((?:https?:\/\/)?(?:[a-zA-Z\d-.]+)?(?:ctfile|545c|u062|ghpym)\.com\/\w+\/[a-zA-Z\d-]+)/,
                 host: /(?:[a-zA-Z\d-.]+)?(?:ctfile|545c|u062)\.com/,
@@ -882,12 +878,6 @@
                 name: 'PikPak',
                 storage: 'hash',
             },
-            'feijipan': {
-                reg: /((?:https?:\/\/)?share\.feijipan\.com\/s\/[a-zA-Z\d-]+)/,
-                host: /share\.feijipan\.com/,
-                name: '飞机盘',
-                storage: 'hash'
-            },
             'vdisk': {
                 reg: /(?:https?:\/\/)?vdisk.weibo.com\/lc\/\w+/,
                 host: /vdisk\.weibo\.com/,
@@ -912,20 +902,20 @@
                 name: 'UC云盘',
                 storage: 'hash'
             },
-            'yukaidi': {
-                reg: /((?:https?:\/\/)?silver\.yukaidi\.com\/s\/[a-zA-Z\d]+)/,
-                host: /silver\.yukaidi\.com/,
-                name: 'yukaidi银盘',
+            'qfile': {
+                reg: /((?:https?:\/\/)?qfile\.qq\.com\/q\/[0-9a-zA-Z]+)/,
+                host: /qfile\.qq\.com/,
+                name: 'QQ闪传',
             },
-            'pansod': {
-                reg: /((?:https?:\/\/)?pan\.lansod\.cn\/s\/[a-zA-Z\d]+)/,
-                host: /pan\.lansod\.cn/,
-                name: ' 小蓝云盘',
+            'google': {
+                reg: /(?:https?:\/\/)?drive\.google\.com\/file\/d\/[\w-]+/,
+                host: /drive\.google\.com/,
+                name: 'Google云端硬盘',
             },
-            'now61': {
-                reg: /((?:https?:\/\/)?www\.now61\.cn\/s\/[a-zA-Z\d]+)/,
-                host: /www\.now61\.cn/,
-                name: '六一云盘',
+            'nitroflare': {
+                reg: /https?:\/\/(?:www\.)?nitroflare\.com\/view\/[\w/]+/,
+                host: /nitroflare\.com/,
+                name: 'NitroFlare',
             },
             'jianguoyun': {
                 reg: /((?:https?:\/\/)?www\.jianguoyun\.com\/p\/[\w-]+)/,
@@ -958,6 +948,7 @@
                 name: 'FlowUs息流',
                 storage: 'hash'
             },
+            //商店链接
             'chrome': {
                 reg: /^https?:\/\/chrome.google.com\/webstore\/.+?\/([a-z]{32})(?=[\/#?]|$)/,
                 host: /chrome\.google\.com/,
@@ -982,6 +973,22 @@
                 replaceHost: "apps.crxsoso.com",
                 name: 'Windows商店',
             },
+            // 小众网盘
+            'yukaidi': {
+                reg: /((?:https?:\/\/)?silver\.yukaidi\.com\/s\/[a-zA-Z\d]+)/,
+                host: /silver\.yukaidi\.com/,
+                name: 'yukaidi银盘',
+            },
+            'pansod': {
+                reg: /((?:https?:\/\/)?pan\.lansod\.cn\/s\/[a-zA-Z\d]+)/,
+                host: /pan\.lansod\.cn/,
+                name: ' 小蓝云盘',
+            },
+            'now61': {
+                reg: /((?:https?:\/\/)?www\.now61\.cn\/s\/[a-zA-Z\d]+)/,
+                host: /www\.now61\.cn/,
+                name: '六一云盘',
+            },
             'noire': {
                 reg: /(?:https?:\/\/)?drive\.noire\.cc\/s\/\w+/,
                 host: /drive\.noire\.cc/,
@@ -991,6 +998,12 @@
                 storage: 'local',
                 storagePwdName: 'tmp_noire_pwd',
                 replaceHost: 'drive.noire.cc'
+            },
+            'feijipan': {
+                reg: /((?:https?:\/\/)?share\.feijipan\.com\/s\/[a-zA-Z\d-]+)/,
+                host: /share\.feijipan\.com/,
+                name: '飞机盘',
+                storage: 'hash'
             },
             '520pan': {
                 reg: /(?:https?:\/\/)?520pan\.com\/s\/\w+/,
@@ -1176,54 +1189,97 @@
         // 自动推导网盘前缀的开关
         const isAutoComplete = util.getValue('setting_auto_complete');
         const isTextAsPassword = util.getValue('setting_text_as_password');
-
+        const isLinkManagement = util.getValue('setting_link_management');
+        const isPanLinkBackup = util.getValue('setting_auto_detect_unknown_disk');
         // 选择相同文字或空不识别
-        if (text !== lastText && text !== '') {
-            const startTime = performance.now();
-            lastText = text;
-            util.clog(`当前选中文字：${text}`);
+        if (text === lastText || text === '') {
+            return;
+        }
+        const startTime = performance.now();
+        lastText = text;
+        util.clog(`当前选中文字：${text}`);
 
-            // 解析链接和密码
-            let linkObj = parseLink(text);
-            util.clog(`解析结果：${JSON.stringify(linkObj)}`);
+        // 解析链接和密码
+        let linkObj = parseLink(text);
+        util.clog(`解析结果：${JSON.stringify(linkObj)}`);
+        let pwd = parsePassword(text);
 
-            let { link, name } = linkObj;
-            let pwd = parsePassword(text);
+        // 从父元素解析链接
+        if (!linkObj?.link) {
+            linkObj = parseParentLink(selection);
+        }
+        // 将超链接文本作为密码
+        if (isTextAsPassword && !pwd) {
+            pwd = parseLinkTextAsPassword(selection);
+        }
 
-            // 从父元素解析链接
-            if (!link) {
-                linkObj = parseParentLink(selection);
-                link = linkObj.link;
-                name = linkObj.name;
+        // 自动补全链接
+        if (isAutoComplete && !linkObj?.link) {
+            linkObj = parseLink(text, true);
+        }
+        if (isPanLinkBackup && !linkObj?.link) {
+            linkObj = parseLink(text, true);
+        }
+        if (isPanLinkBackup && !linkObj?.link) {
+            if (!inferPanLink(text)) {
+                return;
+            }
+            linkObj = parseLink(text, false, true);
+        }
+        // 如果找到链接
+        if (linkObj.link) {
+            // 补全协议头
+            if (!/https?:\/\//.test(linkObj.link)) {
+                linkObj.link = 'https://' + linkObj.link;
             }
 
-            // 将超链接文本作为密码
-            if (isTextAsPassword && !pwd) {
-                pwd = parseLinkTextAsPassword(selection);
+            // 计算耗时
+            const endTime = performance.now();
+            const timeCost = (endTime - startTime).toFixed(3);
+            util.clog(`文本识别结果：${linkObj.name} 链接：${linkObj.link} 密码：${pwd} 耗时：${timeCost}毫秒`);
+
+            // 如果启用了链接管理，添加到历史记录
+            if (isLinkManagement) {
+                addLinkToHistory(linkObj, pwd);
             }
+            // 显示提示并处理用户操作
+            handleLinkDetection(linkObj, pwd);
+        }
 
-            // 自动补全链接
-            if (isAutoComplete && !link) {
-                linkObj = parseLink(text, true);
-                link = linkObj.link;
-                name = linkObj.name;
-            }
+    }
 
-            // 如果找到链接
-            if (link) {
-                // 补全协议头
-                if (!/https?:\/\//.test(link)) {
-                    link = 'https://' + link;
-                }
+    /**
+     * 添加链接到历史记录
+     * @param {Object} linkObj - 链接对象
+     * @param {string} pwd - 提取码
+     */
+    function addLinkToHistory(linkObj, pwd) {
+        try {
+            // 获取现有历史记录
+            const history = util.getValue('setting_link_history') || [];
 
-                // 计算耗时
-                const endTime = performance.now();
-                const timeCost = (endTime - startTime).toFixed(3);
-                util.clog(`文本识别结果：${name} 链接：${link} 密码：${pwd} 耗时：${timeCost}毫秒`);
+            // 创建新的历史记录项
+            const historyItem = {
+                id: Date.now().toString(),
+                name: linkObj.name,
+                link: linkObj.link,
+                pwd: pwd,
+                timestamp: new Date().toISOString(),
+                storage: linkObj.storage
+            };
 
-                // 显示提示并处理用户操作
-                handleLinkDetection(linkObj, pwd);
-            }
+            // 添加到历史记录开头
+            history.unshift(historyItem);
+
+            // 限制历史记录数量（最多50条）
+            const limitedHistory = history.slice(0, 50);
+
+            // 保存到存储
+            util.setValue('setting_link_history', limitedHistory);
+
+            util.clog('链接已添加到历史记录');
+        } catch (error) {
+            console.error('添加历史记录失败:', error);
         }
     }
 
@@ -1233,16 +1289,7 @@
      * @param {string} pwd - 提取码
      */
     function handleLinkDetection(linkObj, pwd) {
-        // 检查是否启用未知网盘检测
-        const isPanLinkBackup = util.getValue('setting_auto_detect_unknown_disk');
-        // 如果链接为空且启用了未知网盘检测，尝试使用备用检测
-        if (!linkObj.link && isPanLinkBackup) {
-            const inferredResult = parseUnknownPanLink(lastText);
-            if (inferredResult.link) {
-                linkObj = inferredResult;
-            }
-        }
-
+        // 防止边界情况，实际情况不应该出现
         if (!linkObj.link) {
             dialog.toast({
                 title: '未检测到网盘链接',
@@ -1298,8 +1345,6 @@
             }
             //linkObj.storage可能是function/local/hash，如果是function，需要执行
             const storage = typeof linkObj.storage === 'function' ? linkObj.storage() : linkObj.storage;
-            // 存储方式为local时，将密码存储到本地存储
-            console.log('%cpanai_next.user.js:1133 storage', 'color: #007acc;', storage);
             if (storage === "local") {
                 util.setValue(linkObj.storagePwdName, pwd);
             } else if (storage === "hash") {
@@ -1323,7 +1368,6 @@
                     }
                 }
             }
-
             // 打开标签页
             GM_openInTab(targetLink, { active });
         });
@@ -1422,31 +1466,6 @@
     }
 
     /**
-     * 解析未知网盘链接（备用模式）
-     * @param {string} text - 文本内容
-     * @returns {Object} 解析结果
-     */
-    function parseUnknownPanLink(text = '') {
-        const result = { name: '', link: '', storage: '', storagePwdName: '' };
-        if (!text) return result;
-
-        // 清洗text，提取出链接
-        const linkMatch = text.match(/https?:\/\/[A-Za-z0-9_\-\+.:?&@=/%#,;]*/);
-        if (linkMatch) {
-            try {
-                const url = new URL(linkMatch[0]);
-                result.link = url.href;
-                result.name = url.hostname.split('.').slice(-2)[0] || '未知网盘';
-                result.storagePwdName = "tmp_common_pwd";
-                result.storage = "local";
-            } catch {
-                // URL解析失败
-            }
-        }
-        return result;
-    }
-
-    /**
      * 处理按键事件
      * @param {Event} event - 事件对象
      */
@@ -1480,56 +1499,62 @@
      * @param {string} text - 文本内容
      * @param {boolean} autoCompletePrefix - 是否自动补全链接前缀
      * @param {boolean} isPanLinkBackup - 是否为备用网盘链接模式
-     * @returns {Object} 解析结果
+     * @returns {Object} result - 解析结果
      */
     function parseLink(text = '', autoCompletePrefix = false, isPanLinkBackup = false) {
-        const result = { name: '', link: '', storage: '', storagePwdName: '' };
-        if (!text) return result;
-
+        let result = { name: '', link: '', storage: '', storagePwdName: '' };
+        if (!text) {
+            return result;
+        }
         try {
             text = decodeURIComponent(text);
-        } catch (e) {
-            // 解码失败则使用原始文本
+        } catch {
         }
-
-        // 文本预处理
-        text = text
-            .replace(/[点點]/g, '.')
-            .replace(/[\u4e00-\u9fa5()（）,\u200B，\uD83C-\uDBFF\uDC00-\uDFFF]/g, '')
-            .replace(/lanzous/g, 'lanzouw'); // 修正lanzous打不开的问题
-
-        // 备用网盘链接模式
+        //特殊处理：点号、冒号、斜杠等替换
+        const re = {
+            "点": ".",
+            "點": ".",
+            "冒号": ":",
+            "斜杠": "/",
+        };
+        const reg = new RegExp(`\\b(?:${Object.keys(re).join("|")})`, "g");
+        text = text.replace(reg, (match) => re[match]);
+        //过滤链接中的中文或表情字符
+        // text = text.replace(/[\u4e00-\u9fa5()（）,\u200B，\uD83C-\uDBFF\uDC00-\uDFFF]/g, '');
+        text = text.replace(/(?<=[\w./:])[\u4e00-\u9fa5\uD83C-\uDBFF\uDC00-\uDFFF]{1,2}(?=[\w./:])/g, "");
         if (isPanLinkBackup) {
-            return parseUnknownPanLink(text);
-        }
-
-        // 匹配网盘链接
-        for (const name in PAN_CONFIGS) {
-            const config = PAN_CONFIGS[name];
-
-            // 自动补全链接前缀
-            if (autoCompletePrefix && config.autoCompleteReg) {
-                text = text.replace(config.autoCompleteReg, `${config.autoCompleteUrlPrefix}$&`);
-            }
-
-            // 检查是否匹配当前网盘
-            if (config.reg.test(text)) {
-                const matches = text.match(config.reg);
-                result.name = config.name;
-                result.link = matches[0];
-                result.storage = config.storage;
-                result.storagePwdName = config.storagePwdName || null;
-                result.originalLink = config.originalLink || false;
-
-                // 替换主机名
-                if (config.replaceHost) {
-                    result.link = result.link.replace(config.host, config.replaceHost);
+            //清洗text,提取出链接
+            let link = text.match(/https?:\/\/[A-Za-z0-9_\-\+.:?&@=/%#,;]*/);
+            if (link) {
+                try {
+                    let url = new URL(link[0]);
+                    result.link = url.href;
+                    result.name = url.hostname.split('.').slice(-2)[0] || '未知网盘';
+                    result.storagePwdName = "tmp_common_pwd";
+                    result.storage = "local";
+                } catch {
                 }
-
+            }
+            return result;
+        }
+        for (let name in PAN_CONFIGS) {
+            let item = PAN_CONFIGS[name];
+            //要求补全链接的前缀应提前加入对应位置
+            if (autoCompletePrefix && item.hasOwnProperty('autoCompleteReg')) {
+                text = text.replace(item.autoCompleteReg, item.autoCompleteUrlPrefix + "$&");
+            }
+            if (item.reg.test(text)) {
+                let matches = text.match(item.reg);
+                result.name = item.name;
+                result.link = matches[0];
+                result.storage = item.storage;
+                result.storagePwdName = item.storagePwdName || null;
+                if (item.replaceHost) {
+                    result.link = result.link.replace(item.host, item.replaceHost);
+                }
                 return result;
             }
         }
-
         return result;
     }
 
@@ -1549,10 +1574,33 @@
      * @returns {string} 密码
      */
     function parseLinkTextAsPassword(selection) {
-        const dom = getSelectionContent(selection, true).querySelector('*[href]');
-        // 仅支持英文大小写、数字作为密码
-        if (dom && /^[a-zA-Z0-9]+$/.test(dom.innerText)) {
-            return dom.innerText;
+        try {
+            // 获取选中内容的DOM对象
+            const contentDiv = getSelectionContent(selection, true);
+            if (!contentDiv) {
+                return '';
+            }
+
+            // 查找所有超链接元素（包括后代元素）
+            const links = contentDiv.querySelectorAll('[href]');
+            if (links.length === 0) {
+                return '';
+            }
+
+            // 遍历所有超链接，找到符合条件的文本
+            for (let i = 0; i < links.length; i++) {
+                const link = links[i];
+                const linkText = link.innerText.trim();
+
+                // 检查文本是否符合密码格式要求
+                // 允许字母、数字，长度在4-10之间
+                if (linkText && /^[a-zA-Z0-9]{4,10}$/.test(linkText)) {
+                    util.clog(`从超链接文本获取密码：${linkText}`);
+                    return linkText;
+                }
+            }
+        } catch (error) {
+            console.error('解析链接文本作为密码时出错:', error);
         }
         return '';
     }
@@ -1603,34 +1651,34 @@
         // 处理对应网盘的密码填写
         for (const name in PAN_CONFIGS) {
             const config = PAN_CONFIGS[name];
-            if (panType === name) {
-                // 获取实际的storage值（如果是函数则执行）
-                const storageType = typeof config.storage === 'function'
-                    ? config.storage()
-                    : config.storage;
+            if (panType !== name) {
+                continue;
+            }
+            // 获取实际的storage值（如果是函数则执行）
+            const storageType = typeof config.storage === 'function'
+                ? config.storage()
+                : config.storage;
 
-                // 本地存储的密码
-                if (storageType === 'local') {
-                    // URL中密码优先
-                    pwd = pwd || util.getValue(config.storagePwdName);
-                    pwd && fillPasswordAndSubmit(config.input, config.button, pwd);
-                }
-
-                // Hash中的密码
-                if (storageType === 'hash') {
-                    // 过滤不正常的Hash
-                    if (/^(?:wss:[a-zA-Z\d]+|[a-zA-Z0-9]{3,8})$/.test(pwd)) {
-                        pwd && fillPasswordAndSubmit(config.input, config.button, pwd);
-                    }
+            // Hash中的密码
+            if (storageType === 'hash') {
+                // 过滤不正常的Hash
+                if (!/^(?:wss:[a-zA-Z\d]+|[a-zA-Z0-9]{3,8})$/.test(pwd)) {
+                    return;
                 }
             }
+            // 本地存储的密码
+            if (storageType === 'local') {
+                // URL中密码优先
+                pwd = pwd || util.getValue(config.storagePwdName);
+            }
+            pwd && fillPasswordAndSubmit(config.input, config.button, pwd);
+            return;
         }
-
         // 处理未知网盘的密码填充逻辑
-        const unknownPwd = util.getValue('tmp_common_pwd');
+        const tmpPwd = util.getValue('tmp_common_pwd');
         const isPanLinkBackup = util.getValue('setting_auto_detect_unknown_disk');
 
-        if (isPanLinkBackup && !panType && unknownPwd) {
+        if (isPanLinkBackup && !panType && tmpPwd) {
             // 更全面地查找可能的密码输入框
             const passwordInputSelectors = [
                 'input[type=password]',
@@ -1649,7 +1697,7 @@
             ];
 
             // 使用增强的密码填写逻辑
-            fillPasswordAndSubmit(passwordInputSelectors, [], unknownPwd, true);
+            fillPasswordAndSubmit(passwordInputSelectors, [], tmpPwd, true);
 
             // 填充完成后清除密码
             util.setValue('tmp_common_pwd', '');
@@ -1658,107 +1706,188 @@
 
 
     /**
+     * 在密码输入框附近查找提交按钮
+     * @param {HTMLElement} inputElement - 密码输入框元素
+     * @returns {HTMLElement|null} 找到的提交按钮
+     */
+    function findNearbySubmitButton(inputElement) {
+        // 表驱动设计：定义常量数据结构
+        const CONFIG = {
+            // 提交按钮选择器列表
+            selectors: [
+                'button',
+                'input[type=submit]',
+                'input[type=button]',
+                '.submit',
+                '.submit-btn',
+                '.btn-submit',
+                '.access-btn',
+                '.confirm-btn',
+                '.ok-btn',
+                '.button',
+                '.btn',
+                '[class*=submit]',
+                '[class*=access]',
+                '[class*=confirm]',
+                '[class*=ok]',
+                '[class*=button]',
+                '[class*=btn]',
+                '[id*=submit]',
+                '[id*=access]',
+                '[id*=confirm]',
+                '[id*=ok]',
+                '[id*=button]',
+                '[id*=btn]'
+            ],
+            // 提交相关的关键词
+            keywords: [
+                'submit',
+                '提交',
+                '确认',
+                '登录',
+                'access',
+                'ok',
+                'go',
+                'enter'
+            ],
+            // 最大父元素查找深度
+            maxDepth: 3
+        };
+
+        // 检查按钮是否为提交按钮的函数
+        const isSubmitButton = (button) => {
+            if (util.isHidden(button)) return false;
+            
+            const buttonText = (button.textContent || button.value || button.innerText || '').toLowerCase();
+            const buttonType = button.type ? button.type.toLowerCase() : '';
+            
+            // 检查按钮类型
+            if (buttonType === 'submit') return true;
+            
+            // 检查按钮文本是否包含关键词
+            return CONFIG.keywords.some(keyword => buttonText.includes(keyword));
+        };
+
+        // 1. 首先检查输入框的父元素内是否有提交按钮
+        let parentElement = inputElement.parentElement;
+        let depth = 0;
+
+        while (parentElement && depth < CONFIG.maxDepth) {
+            for (const selector of CONFIG.selectors) {
+                const buttons = parentElement.querySelectorAll(selector);
+                for (const button of buttons) {
+                    if (isSubmitButton(button)) {
+                        return button;
+                    }
+                }
+            }
+
+            parentElement = parentElement.parentElement;
+            depth++;
+        }
+
+        // 2. 如果在父元素内没有找到，检查整个页面
+        for (const selector of CONFIG.selectors) {
+            const button = document.querySelector(selector);
+            if (button && isSubmitButton(button)) {
+                return button;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * 填写密码并提交（改进版）
      * @param {string[]} inputSelectors - 输入框选择器
      * @param {string[]} buttonSelectors - 按钮选择器
      * @param {string} pwd - 密码
+     * @param {boolean} isPanLinkBackup - 是否为备用网盘链接模式
      */
-    function fillPasswordAndSubmit(inputSelectors, buttonSelectors, pwd) {
-        let attempts = 10; // 最大尝试次数
-        let delay = 800;   // 初始延迟时间
-        let attemptCount = 0; // 当前尝试次数
-        let passwordFilled = false; // 密码是否已填写
+    function fillPasswordAndSubmit(inputSelectors, buttonSelectors, pwd, isPanLinkBackup = false) {
+        let attempt = 0;          // 尝试次数
+        const maxAttempts = 10;   // 最大尝试次数
+        const baseDelay = 800;    // 基础延迟时间(ms)
+        const maxDelay = 5000;    // 最大延迟时间(ms)
+        let timeoutId = null;
 
-        const interval = setInterval(() => {
-            attemptCount++;
-            attempts--;
-
-            // 查找输入框和按钮
-            const input = util.query(inputSelectors);
-            const button = util.query(buttonSelectors);
-
-
-            // 填写密码逻辑（独立于按钮状态）
-            if (input && !passwordFilled && !util.isHidden(input)) {
-                passwordFilled = true;
-
-                // 显示提示
-                dialog.toast({
-                    title: 'AI已识别到密码！正自动帮您填写',
-                    icon: 'success',
-                    timer: 2000
-                });
-
-                // 填写密码
-                const lastValue = input.value;
-                input.value = pwd;
-
-                // 触发输入事件（兼容Vue/React）
-                const event = new Event('input', { bubbles: true });
-                const tracker = input._valueTracker;
-                if (tracker) {
-                    tracker.setValue(lastValue);
-                }
-                input.dispatchEvent(event);
+        // 指数退避重试函数
+        const retryWithBackoff = async () => {
+            // 检查是否已达到最大尝试次数
+            if (attempt >= maxAttempts) {
+                util.clog('密码填充超时，已达到最大尝试次数');
+                return;
             }
 
-            // 点击按钮逻辑
-            if (passwordFilled && button && !button.disabled) {
-                clearInterval(interval);
+            attempt++;
 
-                // 自动点击提交按钮
-                if (util.getValue('setting_auto_click_btn')) {
-                    setTimeout(() => button.click(), 1000); // 延迟1秒点击
-                }
-            } else if (attempts <= 0) {
-                // 超过最大尝试次数
-                clearInterval(interval);
-
-                if (!passwordFilled) {
-                    // dialog.toast({
-                    //     title: `尝试${attemptCount}次后仍未找到密码输入框`,
-                    //     icon: 'error',
-                    //     timer: 3000
-                    // });
-                    //有可能未找到密码输入框，也有可能无需密码，所以不提示
-                } else if (!button) {
+            try {
+                let input = util.query(inputSelectors);
+                let button = isPanLinkBackup ? (input ? findNearbySubmitButton(input) : null) : util.query(buttonSelectors);
+                if (input && !util.isHidden(input)) {
+                    // 找到输入框并可见，执行填充操作
+                    let titletips = attempt === 1 ? 'AI已识别到密码！正自动帮您填写' : 'AI已识别到密码！正自动帮您重试 +' + attempt + ' 次';
                     dialog.toast({
-                        title: `尝试${attemptCount}次后仍未找到提交按钮`,
-                        icon: 'error',
-                        timer: 3000
+                        title: titletips,
+                        icon: attempt === 1 ? 'success' : 'warning',
+                        timer: 2000
                     });
+
+                    const lastValue = input.value;
+                    input.value = pwd;
+                    //Vue & React 触发 input 事件
+                    let event = new Event('input', { bubbles: true });
+                    let tracker = input._valueTracker;
+                    if (tracker) {
+                        tracker.setValue(lastValue);
+                    }
+                    input.dispatchEvent(event);
+
+                    if (util.getValue('setting_auto_click_btn')) {
+                        await util.sleep(1000); //1秒后点击按钮
+                        //若button被禁用，则需要重试
+                        if (button && !button.disabled) {
+                            button.click();
+                            return; // 成功完成操作，不再重试
+                        }
+                    }
+
+                    // 如果已填充但按钮仍被禁用，继续重试
+                    scheduleNextAttempt();
                 } else {
-                    dialog.toast({
-                        title: `尝试${attemptCount}次后提交按钮仍不可用`,
-                        icon: 'error',
-                        timer: 3000
-                    });
+                    // 未找到元素，继续重试
+                    scheduleNextAttempt();
                 }
-            } else {
-                // 指数退避：每次尝试后增加延迟时间
-                delay = Math.min(delay * 1.5, 5000); // 最大延迟5秒
-
-                // 计算下次重试的秒数（保留一位小数）
-                const nextRetrySeconds = (delay / 1000).toFixed(1);
-
-                // 显示重试提示
-                let message = '';
-                if (!passwordFilled) {
-                    //message = `尝试${attemptCount}次，未找到密码输入框，${nextRetrySeconds}秒后重试（剩余${attempts}次）`;
-                    //有可能未找到密码输入框，也有可能无需密码，所以不提示
-                } else if (!button) {
-                    message = `密码已填写，尝试${attemptCount}次，未找到提交按钮，${nextRetrySeconds}秒后重试（剩余${attempts}次）`;
-                } else {
-                    message = `密码已填写，尝试${attemptCount}次，提交按钮不可用，${nextRetrySeconds}秒后重试（剩余${attempts}次）`;
-                }
-
-                dialog.toast({
-                    title: message,
-                    icon: 'info',
-                    timer: 1000
-                });
+            } catch (error) {
+                console.error('密码填充过程中发生错误:', error);
+                scheduleNextAttempt();
             }
-        }, delay);
+        };
+
+        // 安排下一次尝试
+        const scheduleNextAttempt = () => {
+            // 计算指数退避延迟时间: baseDelay * (2^attempt) * (0.8 + 0.4 * Math.random())
+            // 添加随机因子(80%-120%)避免同步请求
+            const exponentialDelay = Math.min(
+                baseDelay * Math.pow(2, attempt - 1),
+                maxDelay
+            );
+            const jitter = 0.8 + 0.4 * Math.random(); // 添加随机因子
+            const delay = Math.floor(exponentialDelay * jitter);
+
+            util.clog(`第${attempt}次尝试失败，${delay}ms后进行第${attempt + 1}次尝试`);
+            timeoutId = setTimeout(retryWithBackoff, delay);
+        };
+
+        // 初始尝试
+        retryWithBackoff();
+
+        // 返回清理函数，方便外部取消重试
+        return () => {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+        };
     }
     /**
      * 重置识别次数
@@ -1833,211 +1962,185 @@
      * 显示设置框
      */
     function showSettingsBox() {
-        // 配置所有设置项（添加未知网盘检测设置）
+        // 创建设置项配置数组，使用更具描述性的ID名称
         const settings = [
             {
-                id: 'S-Auto',
-                storageKey: 'setting_auto_click_btn',
-                type: 'checkbox',
+                id: 'autoSubmitPassword',
                 label: '填写密码后自动提交',
-                className: 'panai-setting-checkbox'
+                type: 'checkbox',
+                storageKey: 'setting_auto_click_btn',
+                value: util.getValue('setting_auto_click_btn')
             },
             {
-                id: 'S-Active',
-                storageKey: 'setting_active_in_front',
-                type: 'checkbox',
+                id: 'openInFrontTab',
                 label: '前台打开网盘标签页',
-                className: 'panai-setting-checkbox'
+                type: 'checkbox',
+                storageKey: 'setting_active_in_front',
+                value: util.getValue('setting_active_in_front')
             },
             {
-                id: 'S-Timer',
+                id: 'enableAutoOpenTimer',
+                label: '倒计时结束自动打开',
+                type: 'checkbox',
                 storageKey: 'setting_timer_open',
-                type: 'checkbox',
-                label: '倒计时结束后自动打开链接',
-                className: 'panai-setting-checkbox'
+                value: util.getValue('setting_timer_open'),
+                onchange: function (e) {
+                    const rangeWrapper = document.getElementById('timerRangeWrapper');
+                    if (rangeWrapper) {
+                        rangeWrapper.style.display = e.target.checked ? 'flex' : 'none';
+                    }
+                }
             },
             {
-                id: 'S-Complete',
-                storageKey: 'setting_auto_complete',
-                type: 'checkbox',
-                label: '自动补全链接前缀',
-                className: 'panai-setting-checkbox'
-            },
-            {
-                id: 'S-TextPwd',
-                storageKey: 'setting_text_as_password',
-                type: 'checkbox',
-                label: '将超链接文本作为提取码',
-                className: 'panai-setting-checkbox'
-            },
-            {
-                id: 'S-Unknown',
-                storageKey: 'setting_auto_detect_unknown_disk',
-                type: 'checkbox',
-                label: '智能识别未知网盘链接',
-                className: 'panai-setting-checkbox'
-            },
-            {
-                id: 'S-TimerValue',
-                storageKey: 'setting_timer',
+                id: 'timerRange',
+                label: '倒计时',
                 type: 'range',
-                label: '倒计时时长(秒)',
-                min: 1,
-                max: 10,
-                step: 0.5,
-                className: 'panai-setting-range'
+                storageKey: 'setting_timer',
+                value: util.getValue('setting_timer'),
+                min: 0,
+                max: 10000,
+                step: 1000,
+                wrapperId: 'timerRangeWrapper',
+                wrapperStyle: { display: util.getValue('setting_timer_open') ? 'flex' : 'none' },
+                extraContent: `<span id="timerValueDisplay">(${util.getValue('setting_timer') / 1000}秒)</span>`,
+                onchange: function (e) {
+                    const timerDisplay = document.getElementById('timerValueDisplay');
+                    if (timerDisplay) {
+                        timerDisplay.textContent = `(${e.target.value / 1000}秒)`;
+                    }
+                }
+            },
+            {
+                id: 'useTextAsPassword',
+                label: '超链接的文本内容作为密码（实验性）',
+                type: 'checkbox',
+                storageKey: 'setting_text_as_password',
+                value: util.getValue('setting_text_as_password')
+            },
+            {
+                id: 'enableAutoComplete',
+                label: '自动推导网盘链接(实验性)',
+                type: 'checkbox',
+                storageKey: 'setting_auto_complete',
+                value: util.getValue('setting_auto_complete'),
+                title: '目前仅支持百度、迅雷、夸克等网盘链接进行自动推导补全'
+            },
+            {
+                id: 'enableAutoDetectUnknownDisk',
+                label: '自动识别未知网盘（实验性）',
+                type: 'checkbox',
+                storageKey: 'setting_auto_detect_unknown_disk',
+                value: util.getValue('setting_auto_detect_unknown_disk'),
+                title: '开启后，助手将尝试识别未知的网盘链接。'
+            },
+            {
+                id: 'enableLinkManagement',
+                label: '链接管理（实验性）',
+                type: 'checkbox',
+                storageKey: 'setting_link_management',
+                value: util.getValue('setting_link_management'),
+                title: '开启后会记录识别的网盘链接历史'
+            },
+            {
+                id: 'hotkeySettings',
+                label: '快捷键设置',
+                type: 'text',
+                storageKey: 'setting_hotkeys',
+                value: util.getValue('setting_hotkeys'),
+                inputStyle: { width: '100px' }
             }
         ];
 
-        // 获取所有设置值并缓存
-        const settingValues = {};
-        settings.forEach(setting => {
-            if (setting.storageKey) {
-                // 确保值不为undefined
-                const storedValue = util.getValue(setting.storageKey);
-                settingValues[setting.storageKey] = storedValue !== undefined
-                    ? storedValue
-                    : setting.defaultValue !== undefined
-                        ? setting.defaultValue
-                        : setting.type === 'checkbox' ? false : '';
-            }
-        });
-
         // 生成HTML
-        let html = '<div style="font-size: 1em;">';
-        settings.forEach(setting => {
-            // 处理普通输入项
-            if (['checkbox', 'text', 'range'].includes(setting.type)) {
-                const value = settingValues[setting.storageKey];
-                const checked = setting.type === 'checkbox' && value ? 'checked' : '';
-                const title = setting.title ? `title="${setting.title}"` : '';
-                const style = setting.style ? `style="${setting.style}"` : '';
-                const className = setting.className ? setting.className : '';
-                const inputValue = setting.type === 'text' ? (value || '') : '';
+        const html = _generateSettingsHtml(settings);
 
-                html += `
-                <label class="panai-setting-label" ${title}>
-                    ${setting.label}
-                    <input type="${setting.type}" id="${setting.id}" data-storage-key="${setting.storageKey}"
-                           ${checked} ${setting.type === 'text' ? `value="${inputValue}"` : ''}
-                           class="${className}" ${style}>
-                </label>
-            `;
-            }
-            // 处理包装器类型
-            else if (setting.type === 'wrapper') {
-                const dependsSetting = settings.find(s => s.id === setting.dependsOn);
-                const dependsValue = dependsSetting ? settingValues[dependsSetting.storageKey] : false;
-                const display = dependsValue ? '' : 'display: none';
-                // 替换模板变量
-                const timerValue = settingValues.setting_timer || 5000;
-                const labelHtml = setting.label.replace(
-                    /{{timer}}/g,
-                    timerValue / 1000
-                );
-
-                html += `
-                <label class="panai-setting-label" id="${setting.id}" style="${display}">
-                    ${labelHtml}
-                </label>
-            `;
-            }
-        });
-        html += '</div>';
-
-        // 显示对话框（无保存按钮，只有关闭按钮）
-        dialog.alert({
+        // 显示对话框
+        dialog.confirm({
             title: '识别助手配置',
             html: html,
-        }).then(res => {
-            // 关闭对话框时不需要额外操作，因为已经实时保存
+            confirmButtonText: '保存',
+            cancelButtonText: '取消'
+        }).then((res) => {
+            res.isConfirmed && history.go(0);
         });
 
-        // 缓存所有元素引用
-        const elements = {};
-        settings.forEach(setting => {
-            if (setting.id) {
-                elements[setting.id] = document.getElementById(setting.id);
-            }
-        });
-        // 添加额外需要的元素
-        elements['Timer-Value'] = document.getElementById('Timer-Value');
-        elements['S-Timer'] = document.getElementById('S-Timer'); // 显式获取滑块元素
+        // 延迟绑定事件监听器，确保对话框已完全渲染
+        setTimeout(() => {
+            _bindSettingsEvents(settings);
+        }, 100);
 
-        // 实时保存设置的函数
-        const saveSetting = (setting, element) => {
-            if (!setting.storageKey || !element) return;
+        // 生成设置项HTML的辅助函数
+        function _generateSettingsHtml(settings) {
+            const containerStyle = { fontSize: '1em' };
+            const containerStyleStr = Object.entries(containerStyle)
+                .map(([key, val]) => `${key}: ${val}`)
+                .join('; ');
 
-            let value;
-            switch (setting.type) {
-                case 'checkbox':
-                    value = element.checked;
-                    break;
-                case 'range':
-                    value = parseInt(element.value, 10);
-                    // 更新显示
-                    if (elements['Timer-Value']) {
-                        elements['Timer-Value'].innerText = `（${value / 1000}秒）`;
-                    }
-                    break;
-                case 'text':
-                    value = element.value.trim() || setting.defaultValue || '';
-                    break;
-                default:
-                    value = element.value;
-            }
+            let html = `<div style="${containerStyleStr}">`;
 
-            // 保存值
-            util.setValue(setting.storageKey, value);
+            settings.forEach(setting => {
+                const {
+                    id,
+                    label,
+                    type,
+                    value,
+                    min,
+                    max,
+                    step,
+                    wrapperId,
+                    wrapperStyle,
+                    extraContent,
+                    inputStyle,
+                    title
+                } = setting;
 
-            // 显示保存提示
-            dialog.toast({
-                title: '设置已更新',
-                icon: 'success',
-                timer: 1000
-            });
-        };
+                // 处理包装器样式
+                const styleStr = wrapperStyle ? Object.entries(wrapperStyle)
+                    .map(([key, val]) => `${key}: ${val}`)
+                    .join('; ') : '';
 
-        // 绑定事件（同时处理UI更新和实时保存）
-        settings.forEach(setting => {
-            const element = elements[setting.id];
-            if (element) {
-                // 定义通用的变更处理函数
-                const handleChange = (e) => {
-                    const value = setting.type === 'checkbox' ? e.target.checked : e.target.value;
+                // 处理输入框样式
+                const inputStyleStr = inputStyle ? Object.entries(inputStyle)
+                    .map(([key, val]) => `${key}: ${val}`)
+                    .join('; ') : '';
 
-                    // 执行设置项自身的变更逻辑（如显示/隐藏相关控件）
-                    if (setting.onChange) {
-                        setting.onChange(value, elements);
-                    }
+                // 生成label元素
+                html += `<label class="panai-setting-label" id="${wrapperId || id + 'Wrapper'}" style="${styleStr}" ${title ? `title="${title}"` : ''}>`;
+                html += `<span>${label} ${extraContent || ''}</span>`;
 
-                    // 实时保存设置
-                    saveSetting(setting, element);
-                };
-
-                // 根据输入类型绑定合适的事件
-                if (setting.type === 'range') {
-                    // 滑块实时更新
-                    element.addEventListener('input', handleChange);
-                } else {
-                    // 其他控件在值变更时更新
-                    element.addEventListener('change', handleChange);
-
-                    // 文本框在输入时就实时保存
-                    if (setting.type === 'text') {
-                        element.addEventListener('input', handleChange);
-                    }
+                // 根据类型生成不同的输入控件
+                if (type === 'checkbox') {
+                    html += `<input type="checkbox" id="${id}" ${value ? 'checked' : ''} class="panai-setting-checkbox">`;
+                } else if (type === 'range') {
+                    html += `<input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${value}" style="${inputStyleStr}">`;
+                } else if (type === 'text') {
+                    html += `<input type="text" id="${id}" value="${value}" style="${inputStyleStr}">`;
                 }
-            }
-        });
 
-        // 初始化：确保首次打开时正确显示依赖项
-        const timerOpenElement = elements['S-Timer-Open'];
-        const timerWrapper = elements['Panai-Range-Wrapper'];
+                html += '</label>';
+            });
 
-        if (timerOpenElement && timerWrapper) {
-            const isTimerEnabled = timerOpenElement.checked;
-            timerWrapper.style.display = isTimerEnabled ? 'flex' : 'none';
+            html += '</div>';
+            return html;
+        }
+
+        // 绑定设置项事件的辅助函数
+        function _bindSettingsEvents(settings) {
+            settings.forEach(setting => {
+                const element = document.getElementById(setting.id);
+                if (!element) return;
+
+                element.addEventListener('change', (e) => {
+                    // 保存设置到存储
+                    const value = setting.type === 'checkbox' ? e.target.checked : e.target.value;
+                    util.setValue(setting.storageKey, value);
+
+                    // 执行自定义变更处理（如果有）
+                    if (typeof setting.onchange === 'function') {
+                        setting.onchange(e);
+                    }
+                });
+            });
         }
     }
 
@@ -2059,6 +2162,149 @@
             '⚙️ 设置',
             () => showSettingsBox()
         );
+
+        GM_registerMenuCommand(
+            '📖 查看历史记录',
+            () => showLinkHistory()
+        );
+    }
+
+    /**
+     * 显示链接历史记录
+     */
+    function showLinkHistory() {
+        const isLinkManagement = util.getValue('setting_link_management');
+
+        if (!isLinkManagement) {
+            dialog.alert({
+                title: '链接管理未开启',
+                text: '请先在设置中开启链接管理功能（实验性）',
+                confirmButtonText: '确定'
+            });
+            return;
+        }
+
+        // 获取历史记录
+        const history = util.getValue('setting_link_history') || [];
+
+        if (history.length === 0) {
+            dialog.alert({
+                title: '无历史记录',
+                text: '暂无识别过的网盘链接历史记录',
+                confirmButtonText: '确定'
+            });
+            return;
+        }
+
+        // 生成历史记录HTML
+        let html = `
+            <div style="font-size: 14px;">
+                <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <h4 style="margin: 0; color: #333;">已识别的网盘链接（${history.length}条）</h4>
+                    <button id="clear-history-btn" style="padding: 6px 12px; background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-size: 12px;">清空历史</button>
+                </div>
+                <div style="max-height: 400px; overflow-y: auto;">
+        `;
+
+        // 添加历史记录项
+        history.forEach((item, index) => {
+            const date = new Date(item.timestamp);
+            const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+            html += `
+                <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 10px; background: #f9fafb;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <div>
+                            <span style="font-weight: 600; color: #2778c4;">${item.name}</span>
+                            <span style="font-size: 12px; color: #9ca3af; margin-left: 10px;">${formattedDate}</span>
+                        </div>
+                        <button class="delete-history-item" data-id="${item.id}" style="padding: 4px 8px; background: #fef2f2; border: 1px solid #fee2e2; border-radius: 4px; cursor: pointer; font-size: 12px; color: #dc2626;">删除</button>
+                    </div>
+                    <div style="margin-bottom: 8px; word-break: break-all;">
+                        <span style="font-size: 12px; color: #6b7280;">链接：</span>
+                        <a href="${item.link}" target="_blank" style="color: #3b82f6; text-decoration: none;">${item.link}</a>
+                    </div>
+                    ${item.pwd ? `<div style="font-size: 12px; color: #6b7280;">提取码：<span style="font-weight: 600; color: #e74c3c;">${item.pwd}</span></div>` : ''}
+                </div>
+            `;
+        });
+
+        html += `
+                </div>
+            </div>
+        `;
+
+        // 显示历史记录对话框
+        dialog.alert({
+            title: '链接历史记录',
+            html: html,
+            confirmButtonText: '关闭'
+        }).then(() => {
+            // 对话框关闭后清理事件监听器
+            const clearBtn = document.getElementById('clear-history-btn');
+            if (clearBtn) {
+                clearBtn.removeEventListener('click', handleClearHistory);
+            }
+            const deleteBtns = document.querySelectorAll('.delete-history-item');
+            deleteBtns.forEach(btn => {
+                btn.removeEventListener('click', handleDeleteHistoryItem);
+            });
+        });
+
+        // 绑定事件监听器
+        setTimeout(() => {
+            const clearBtn = document.getElementById('clear-history-btn');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', handleClearHistory);
+            }
+            const deleteBtns = document.querySelectorAll('.delete-history-item');
+            deleteBtns.forEach(btn => {
+                btn.addEventListener('click', handleDeleteHistoryItem);
+            });
+        }, 100);
+    }
+
+    /**
+     * 处理清空历史记录
+     */
+    function handleClearHistory() {
+        dialog.confirm({
+            title: '确定要清空历史记录吗？',
+            text: '此操作不可恢复',
+            confirmButtonText: '确定',
+            cancelButtonText: '取消'
+        }).then(res => {
+            if (res.isConfirmed) {
+                util.setValue('setting_link_history', []);
+                dialog.toast({
+                    title: '历史记录已清空',
+                    icon: 'success',
+                    timer: 2000
+                });
+                // 重新显示历史记录界面
+                setTimeout(() => showLinkHistory(), 500);
+            }
+        });
+    }
+
+    /**
+     * 处理删除单个历史记录项
+     * @param {Event} event - 事件对象
+     */
+    function handleDeleteHistoryItem(event) {
+        const itemId = event.target.dataset.id;
+        const history = util.getValue('setting_link_history') || [];
+        const updatedHistory = history.filter(item => item.id !== itemId);
+
+        util.setValue('setting_link_history', updatedHistory);
+        dialog.toast({
+            title: '记录已删除',
+            icon: 'success',
+            timer: 1000
+        });
+
+        // 重新显示历史记录界面
+        setTimeout(() => showLinkHistory(), 300);
     }
 
     /**
