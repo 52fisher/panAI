@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手(NEXT)
 // @namespace         https://github.com/52fisher/panAI
-// @version           3.1.4
+// @version           3.1.5
 // @author            52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。
 // @license           AGPL-3.0-or-later
@@ -643,7 +643,7 @@
     }
 
     // 状态变量
-    let lastText = "lorem&";
+    let lastText = "";
     let dialog; // 自定义对话框实例
     let util;
     let PAN_CONFIGS; // 先声明，后初始化
@@ -754,8 +754,8 @@
      * 初始化网盘配置
      */
     function initPanConfigs() {
-        PAN_CONFIGS = {
-            //主流网盘
+        // 主流网盘配置
+        const mainstreamPans = {
             'baidu': {
                 reg: /((?:https?:\/\/)?(?:e?yun|pan)\.baidu\.com\/(doc\/|enterprise\/)?(?:s\/[\w~]*(((-)?\w*)*)?|share\/\S{4,}))/,
                 host: /(pan|e?yun)\.baidu\.com/,
@@ -947,8 +947,11 @@
                 host: /flowus\.cn/,
                 name: 'FlowUs息流',
                 storage: 'hash'
-            },
-            //商店链接
+            }
+        };
+
+        // 商店链接配置
+        const storeLinks = {
             'chrome': {
                 reg: /^https?:\/\/chrome.google.com\/webstore\/.+?\/([a-z]{32})(?=[\/#?]|$)/,
                 host: /chrome\.google\.com/,
@@ -972,8 +975,11 @@
                 host: /(apps|www)\.microsoft\.com/,
                 replaceHost: "apps.crxsoso.com",
                 name: 'Windows商店',
-            },
-            // 小众网盘
+            }
+        };
+
+        // 小众网盘配置
+        const nichePans = {
             'yukaidi': {
                 reg: /((?:https?:\/\/)?silver\.yukaidi\.com\/s\/[a-zA-Z\d]+)/,
                 host: /silver\.yukaidi\.com/,
@@ -1141,6 +1147,13 @@
                 storagePwdName: 'tmp_116pan_pwd'
             }
         };
+
+        // 合并所有配置
+        PAN_CONFIGS = {
+            ...mainstreamPans,
+            ...storeLinks,
+            ...nichePans
+        };
     }
 
     /**
@@ -1256,7 +1269,17 @@
     function addLinkToHistory(linkObj, pwd) {
         try {
             // 获取现有历史记录
-            const history = util.getValue('setting_link_history') || [];
+            let history = util.getValue('setting_link_history') || [];
+
+            // 检查是否存在重复链接
+            const existingIndex = history.findIndex(item => item.link === linkObj.link);
+            
+            if (existingIndex !== -1) {
+                // 找到重复链接，删除原记录
+                history.splice(existingIndex, 1);
+                
+                util.clog('链接已存在，已删除原记录');
+            }
 
             // 创建新的历史记录项
             const historyItem = {
@@ -1278,8 +1301,20 @@
             util.setValue('setting_link_history', limitedHistory);
 
             util.clog('链接已添加到历史记录');
+            // 添加用户反馈
+            dialog.toast({
+                title: existingIndex !== -1 ? '链接已存在，已更新到最新' : '链接已添加到历史记录',
+                icon: existingIndex !== -1 ? 'info' : 'success',
+                timer: 1500
+            });
         } catch (error) {
             console.error('添加历史记录失败:', error);
+            dialog.toast({
+                title: '添加历史记录失败，请稍后重试',
+                icon: 'error',
+                timer: 2000
+            });
+            return;
         }
     }
 
@@ -1368,6 +1403,15 @@
                     }
                 }
             }
+            // 链接安全检查
+            if (!/^https?:\/\/.+/.test(targetLink)) {
+                dialog.toast({
+                    title: '链接格式不正确，无法打开！',
+                    icon: 'error'
+                });
+                return;
+            }
+
             // 打开标签页
             GM_openInTab(targetLink, { active });
         });
@@ -1508,7 +1552,8 @@
         }
         try {
             text = decodeURIComponent(text);
-        } catch {
+        } catch (error) {
+            util.clog('解码URI失败:', error);
         }
         //特殊处理：点号、冒号、斜杠等替换
         const re = {
@@ -1757,13 +1802,13 @@
         // 检查按钮是否为提交按钮的函数
         const isSubmitButton = (button) => {
             if (util.isHidden(button)) return false;
-            
+
             const buttonText = (button.textContent || button.value || button.innerText || '').toLowerCase();
             const buttonType = button.type ? button.type.toLowerCase() : '';
-            
+
             // 检查按钮类型
             if (buttonType === 'submit') return true;
-            
+
             // 检查按钮文本是否包含关键词
             return CONFIG.keywords.some(keyword => buttonText.includes(keyword));
         };
@@ -1848,7 +1893,11 @@
                         //若button被禁用，则需要重试
                         if (button && !button.disabled) {
                             button.click();
-                            return; // 成功完成操作，不再重试
+                            // 成功完成操作，清除定时器
+                            if (timeoutId) {
+                                clearTimeout(timeoutId);
+                            }
+                            return;
                         }
                     }
 
@@ -1866,6 +1915,11 @@
 
         // 安排下一次尝试
         const scheduleNextAttempt = () => {
+            // 先清除之前的定时器
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+
             // 计算指数退避延迟时间: baseDelay * (2^attempt) * (0.8 + 0.4 * Math.random())
             // 添加随机因子(80%-120%)避免同步请求
             const exponentialDelay = Math.min(
@@ -1886,6 +1940,7 @@
         return () => {
             if (timeoutId) {
                 clearTimeout(timeoutId);
+                timeoutId = null;
             }
         };
     }
@@ -1946,15 +2001,24 @@
                 smartIdentify(null, value);
             }
             if (res.isDenied) {
-                navigator.clipboard.readText()
-                    .then(text => smartIdentify(null, text))
-                    .catch(() => {
-                        // 使用修复后的toast方法
-                        dialog.toast({
-                            title: '读取剪切板失败，请先授权或手动粘贴后识别！',
-                            icon: 'error'
+                // 检查浏览器是否支持Clipboard API
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.readText()
+                        .then(text => smartIdentify(null, text))
+                        .catch(() => {
+                            // 使用修复后的toast方法
+                            dialog.toast({
+                                title: '读取剪切板失败，请先授权或手动粘贴后识别！',
+                                icon: 'error'
+                            });
                         });
+                } else {
+                    // 浏览器不支持Clipboard API，提示用户手动粘贴
+                    dialog.toast({
+                        title: '您的浏览器不支持自动读取剪贴板，请手动粘贴后识别！',
+                        icon: 'error'
                     });
+                }
             }
         });
     }
@@ -2241,26 +2305,29 @@
             confirmButtonText: '关闭'
         }).then(() => {
             // 对话框关闭后清理事件监听器
-            const clearBtn = document.getElementById('clear-history-btn');
-            if (clearBtn) {
-                clearBtn.removeEventListener('click', handleClearHistory);
+            const dialogContent = document.querySelector('.panai-dialog-content');
+            if (dialogContent) {
+                // 移除事件委托
+                dialogContent.removeEventListener('click', handleHistoryItemClick);
             }
-            const deleteBtns = document.querySelectorAll('.delete-history-item');
-            deleteBtns.forEach(btn => {
-                btn.removeEventListener('click', handleDeleteHistoryItem);
-            });
         });
 
-        // 绑定事件监听器
-        setTimeout(() => {
-            const clearBtn = document.getElementById('clear-history-btn');
-            if (clearBtn) {
-                clearBtn.addEventListener('click', handleClearHistory);
+        // 事件处理函数
+        function handleHistoryItemClick(e) {
+            if (e.target.id === 'clear-history-btn') {
+                handleClearHistory();
+            } else if (e.target.classList.contains('delete-history-item')) {
+                handleDeleteHistoryItem(e);
             }
-            const deleteBtns = document.querySelectorAll('.delete-history-item');
-            deleteBtns.forEach(btn => {
-                btn.addEventListener('click', handleDeleteHistoryItem);
-            });
+        }
+
+        // 绑定事件监听器 - 使用事件委托
+        setTimeout(() => {
+            const dialogContent = document.querySelector('.panai-dialog-content');
+            if (dialogContent) {
+                // 为整个对话框内容添加事件委托
+                dialogContent.addEventListener('click', handleHistoryItemClick);
+            }
         }, 100);
     }
 
