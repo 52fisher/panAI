@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手(NEXT)
 // @namespace         https://github.com/52fisher/panAI
-// @version           3.1.5
+// @version           3.1.6
 // @author            52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。
 // @license           AGPL-3.0-or-later
@@ -52,8 +52,43 @@
         },
         PASSWORD_REGEX: /wss:[a-zA-Z0-9]+|(?<=\s*(?:密|提取|访问|訪問|key|password|pwd|#|\?p=|\?code=)\s*[码碼]?\s*[：:=]?\s*)[a-zA-Z0-9]{3,8}/i,
         PLUGIN_STYLES: `
-        .panai-setting-label { display: flex;align-items:baseline;justify-content: space-between;padding-top: 20px; }
-        .panai-setting-checkbox { width: 16px;height: 16px; }
+        /* CSS Variables for easy theming */
+        :root {
+            --panai-primary: #3b82f6;
+            --panai-primary-dark: #1d4ed8;
+            --panai-secondary: #f59e0b;
+            --panai-secondary-dark: #d97706;
+            --panai-success: #22c55e;
+            --panai-success-dark: #16a34a;
+            --panai-error: #ef4444;
+            --panai-error-dark: #dc2626;
+            --panai-info: #3b82f6;
+            --panai-info-dark: #1d4ed8;
+            --panai-bg: rgba(255, 255, 255, 0.95);
+            --panai-bg-dark: rgba(31, 41, 55, 0.95);
+            --panai-text: #1f2937;
+            --panai-text-dark: #f9fafb;
+            --panai-text-secondary: #4b5563;
+            --panai-text-secondary-dark: #d1d5db;
+            --panai-border: rgba(229, 231, 235, 0.8);
+            --panai-border-dark: rgba(255, 255, 255, 0.1);
+            --panai-shadow: 0 20px 60px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            --panai-radius: 12px;
+            --panai-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .panai-setting-label {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            padding-top: 20px;
+        }
+
+        .panai-setting-checkbox {
+            width: 16px;
+            height: 16px;
+        }
+
         .panai-dialog-overlay {
             position: fixed;
             top: 0;
@@ -71,27 +106,39 @@
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
         }
+
         .panai-dialog-overlay.active {
             opacity: 1;
             pointer-events: auto;
         }
+
         .panai-dialog-content {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
+            background: var(--panai-bg);
+            border-radius: var(--panai-radius);
             width: fit-content;
             max-width: 500px;
             min-width: 320px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            box-shadow: var(--panai-shadow);
             transform: translateY(-20px) scale(0.95);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: var(--panai-transition);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid var(--panai-border);
             overflow: hidden;
+            animation: dialogSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .panai-dialog-overlay.active .panai-dialog-content {
-            transform: translateY(0) scale(1);
+
+        @keyframes dialogSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
+
         .panai-dialog-header {
             padding: 20px 24px 0;
             display: flex;
@@ -99,13 +146,15 @@
             align-items: center;
             border-bottom: none;
         }
+
         .panai-dialog-title {
             margin: 0;
             font-size: 20px;
             font-weight: 600;
-            color: #1f2937;
+            color: var(--panai-text);
             line-height: 1.4;
         }
+
         .panai-dialog-close {
             background: none;
             border: none;
@@ -120,28 +169,48 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
+
         .panai-dialog-close:hover {
             color: #374151;
             background: rgba(0, 0, 0, 0.05);
         }
+
         .panai-dialog-body {
             padding: 20px 24px;
             max-height: 60vh;
             overflow-y: auto;
-            color: #4b5563;
+            color: var(--panai-text-secondary);
             line-height: 1.6;
             font-size: 14px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--panai-border) transparent;
         }
+
+        .panai-dialog-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .panai-dialog-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .panai-dialog-body::-webkit-scrollbar-thumb {
+            background-color: var(--panai-border);
+            border-radius: 3px;
+        }
+
         .panai-dialog-footer {
             padding: 0 24px 20px;
             display: flex;
             justify-content: flex-end;
             gap: 12px;
             background: rgba(249, 250, 251, 0.8);
-            border-top: 1px solid rgba(229, 231, 235, 0.8);
+            border-top: 1px solid var(--panai-border);
             margin-top: 0;
         }
+
         .panai-dialog-footer button {
             padding: 10px 20px;
             border-radius: 8px;
@@ -153,10 +222,13 @@
             min-width: 80px;
             position: relative;
             overflow: hidden;
+            font-family: inherit;
         }
+
         .panai-dialog-footer button:active {
             transform: translateY(1px);
         }
+
         .panai-dialog-footer button::before {
             content: '';
             position: absolute;
@@ -167,37 +239,45 @@
             background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
             transition: left 0.5s;
         }
+
         .panai-dialog-footer button:hover::before {
             left: 100%;
         }
+
         .panai-cancel-btn {
             background: #f8f9fa;
             color: #6b7280;
             border: 1px solid #e5e7eb;
         }
+
         .panai-cancel-btn:hover {
             background: #f3f4f6;
             color: #374151;
             border-color: #d1d5db;
         }
+
         .panai-confirm-btn {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            background: linear-gradient(135deg, var(--panai-primary), var(--panai-primary-dark));
             color: white;
             box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
         }
+
         .panai-confirm-btn:hover {
             background: linear-gradient(135deg, #2563eb, #1e40af);
             box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
         }
+
         .panai-deny-btn {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
+            background: linear-gradient(135deg, var(--panai-secondary), var(--panai-secondary-dark));
             color: white;
             box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
         }
+
         .panai-deny-btn:hover {
             background: linear-gradient(135deg, #d97706, #b45309);
             box-shadow: 0 4px 8px rgba(245, 158, 11, 0.4);
         }
+
         .panai-toast {
             position: fixed;
             top: 24px;
@@ -219,53 +299,78 @@
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        @keyframes toastSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
         .panai-toast.active {
             opacity: 1;
             transform: translateX(-50%) translateY(0);
         }
+
         .panai-toast.success {
             background: rgba(34, 197, 94, 0.95);
             color: white;
         }
+
         .panai-toast.error {
             background: rgba(239, 68, 68, 0.95);
             color: white;
         }
+
         .panai-toast.info {
             background: rgba(59, 130, 246, 0.95);
             color: white;
         }
+
         .panai-timer-bar {
             height: 3px;
-            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+            background: linear-gradient(90deg, var(--panai-primary), var(--panai-primary-dark));
             position: absolute;
             bottom: 0;
             left: 0;
             width: 100%;
             transition: width linear;
-            border-radius: 0 0 12px 12px;
+            border-radius: 0 0 var(--panai-radius) var(--panai-radius);
         }
-        .panai-dialog-body textarea,.panai-dialog-body input[type="text"], .panai-dialog-body input[type="range"] {
+
+        .panai-dialog-body textarea,
+        .panai-dialog-body input[type="text"],
+        .panai-dialog-body input[type="range"] {
             width: 100%;
             padding: 12px 16px;
             margin-bottom: 16px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--panai-border);
             border-radius: 8px;
             box-sizing: border-box;
             font-size: 14px;
             transition: all 0.2s ease;
             background: rgba(255, 255, 255, 0.8);
+            font-family: inherit;
         }
-        .panai-dialog-body textarea:focus,.panai-dialog-body input[type="text"]:focus {
+
+        .panai-dialog-body textarea:focus,
+        .panai-dialog-body input[type="text"]:focus {
             outline: none;
-            border-color: #3b82f6;
+            border-color: var(--panai-primary);
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
-       .panai-dialog-body textarea {
+
+        .panai-dialog-body textarea {
             min-height: 100px;
             resize: vertical;
         }
+
         .panai-dialog-body input[type="range"] {
             padding: 0;
             height: 6px;
@@ -275,25 +380,39 @@
             -webkit-appearance: none;
             width: fit-content;
         }
+
         .panai-dialog-body input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #3b82f6;
+            background: var(--panai-primary);
             cursor: pointer;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
         }
+
+        .panai-dialog-body input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+        }
+
         .panai-dialog-body input[type="range"]::-moz-range-thumb {
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #3b82f6;
+            background: var(--panai-primary);
             cursor: pointer;
             border: none;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
         }
-        
+
+        .panai-dialog-body input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+        }
+
         /* 响应式设计 */
         @media (max-width: 640px) {
             .panai-dialog-content {
@@ -301,70 +420,109 @@
                 min-width: 280px;
                 margin: 20px;
             }
+
             .panai-dialog-header {
                 padding: 16px 20px 0;
             }
+
             .panai-dialog-body {
                 padding: 16px 20px;
                 max-height: 50vh;
             }
+
             .panai-dialog-footer {
                 padding: 0 20px 16px;
                 flex-direction: column-reverse;
                 gap: 8px;
             }
+
             .panai-dialog-footer button {
                 width: 100%;
                 margin: 0;
             }
+
             .panai-toast {
                 max-width: 90vw;
                 margin: 0 20px;
             }
         }
-        
+
         /* 深色模式适配 */
         @media (prefers-color-scheme: dark) {
             .panai-dialog-content {
-                background: rgba(31, 41, 55, 0.95);
-                border-color: rgba(255, 255, 255, 0.1);
+                background: var(--panai-bg-dark);
+                border-color: var(--panai-border-dark);
             }
+
             .panai-dialog-title {
-                color: #f9fafb;
+                color: var(--panai-text-dark);
             }
+
             .panai-dialog-body {
-                color: #d1d5db;
+                color: var(--panai-text-secondary-dark);
+                scrollbar-color: var(--panai-border-dark) transparent;
             }
+
+            .panai-dialog-body::-webkit-scrollbar-thumb {
+                background-color: var(--panai-border-dark);
+            }
+
             .panai-dialog-footer {
                 background: rgba(17, 24, 39, 0.8);
-                border-top-color: rgba(255, 255, 255, 0.1);
+                border-top-color: var(--panai-border-dark);
             }
+
             .panai-cancel-btn {
                 background: rgba(55, 65, 81, 0.8);
                 color: #d1d5db;
-                border-color: rgba(255, 255, 255, 0.1);
+                border-color: var(--panai-border-dark);
             }
+
             .panai-cancel-btn:hover {
                 background: rgba(75, 85, 99, 0.8);
                 color: #f9fafb;
             }
-            .panai-dialog-body textarea,.panai-dialog-body input[type="text"] {
+
+            .panai-dialog-body textarea,
+            .panai-dialog-body input[type="text"] {
                 background: rgba(55, 65, 81, 0.8);
-                border-color: rgba(255, 255, 255, 0.1);
+                border-color: var(--panai-border-dark);
                 color: #f9fafb;
             }
-            .panai-dialog-body textarea:focus,.panai-dialog-body input[type="text"]:focus {
-                border-color: #3b82f6;
+
+            .panai-dialog-body textarea:focus,
+            .panai-dialog-body input[type="text"]:focus {
+                border-color: var(--panai-primary);
             }
         }
-    `
+
+        /* 减少重排和重绘的优化 */
+        .panai-dialog-overlay,
+        .panai-dialog-content,
+        .panai-toast {
+            will-change: transform, opacity;
+        }
+
+        /* 按钮点击反馈优化 */
+        .panai-dialog-footer button {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 提高可访问性 */
+        .panai-dialog-close:focus,
+        .panai-dialog-footer button:focus {
+            outline: 2px solid var(--panai-primary);
+            outline-offset: 2px;
+        }`
     };
 
     // 自定义Dialog组件
     class Dialog {
         constructor() {
-            // 绑定toast方法的上下文，确保this指向正确
+            // 绑定方法的上下文，确保this指向正确
             this.toast = this.toast.bind(this);
+            this.handleOverlayClick = this.handleOverlayClick.bind(this);
+            this.handleKeyDown = this.handleKeyDown.bind(this);
             this.createElements();
             this.bindEvents();
         }
@@ -388,6 +546,7 @@
             this.closeBtn = document.createElement('button');
             this.closeBtn.className = 'panai-dialog-close';
             this.closeBtn.innerHTML = '&times;';
+            this.closeBtn.setAttribute('aria-label', '关闭');
 
             this.body = document.createElement('div');
             this.body.className = `${CONSTANTS.CUSTOM_CLASSES.dialogBody}`;
@@ -401,7 +560,6 @@
 
             // 组装对话框
             this.header.appendChild(this.title);
-            //this.header.appendChild(this.closeBtn);
             this.content.appendChild(this.header);
             this.content.appendChild(this.body);
             this.content.appendChild(this.footer);
@@ -415,6 +573,7 @@
             this.timer = null;
             this.timerBar = null;
             this.resolve = null;
+            this.toastTimer = null;
         }
 
         // 绑定事件
@@ -429,38 +588,51 @@
             });
 
             // 点击遮罩层关闭
-            this.overlay.addEventListener('click', (e) => {
-                if (e.target === this.overlay) {
-                    this.closeBtn.click();
-                }
-            });
+            this.overlay.addEventListener('click', this.handleOverlayClick);
 
             // ESC键关闭
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && this.overlay.classList.contains('active')) {
-                    this.closeBtn.click();
-                }
-            });
+            document.addEventListener('keydown', this.handleKeyDown);
+        }
+
+        // 处理遮罩层点击
+        handleOverlayClick(e) {
+            if (e.target === this.overlay) {
+                this.closeBtn.click();
+            }
+        }
+
+        // 处理键盘事件
+        handleKeyDown(e) {
+            if (e.key === 'Escape' && this.overlay.classList.contains('active')) {
+                this.closeBtn.click();
+            }
         }
 
         // 显示对话框
         show() {
-            this.overlay.classList.add('active');
+            // 使用requestAnimationFrame优化动画性能
+            requestAnimationFrame(() => {
+                this.overlay.classList.add('active');
+            });
         }
 
         // 隐藏对话框
         hide() {
-            this.overlay.classList.remove('active');
-            this.clearButtons();
-            this.clearTimer();
+            // 使用requestAnimationFrame优化动画性能
+            requestAnimationFrame(() => {
+                this.overlay.classList.remove('active');
+                this.clearButtons();
+                this.clearTimer();
 
-            // 清空内容
-            this.body.innerHTML = '';
-            this.title.innerHTML = '';
+                // 清空内容
+                this.body.innerHTML = '';
+                this.title.innerHTML = '';
+            });
         }
 
         // 清除按钮
         clearButtons() {
+            // 优化DOM操作，减少重排
             while (this.footer.firstChild) {
                 this.footer.removeChild(this.footer.firstChild);
             }
@@ -469,7 +641,7 @@
         // 清除计时器
         clearTimer() {
             if (this.timer) {
-                clearInterval(this.timer);
+                clearTimeout(this.timer);
                 this.timer = null;
             }
             if (this.timerBar) {
@@ -549,18 +721,22 @@
                     let timeLeft = options.timer;
                     const totalTime = options.timer;
 
-                    this.timer = setInterval(() => {
+                    // 使用requestAnimationFrame优化计时器性能
+                    const updateTimer = () => {
                         timeLeft -= 100;
                         const percentage = (timeLeft / totalTime) * 100;
                         this.timerBar.style.width = `${percentage}%`;
 
-                        if (timeLeft <= 0) {
-                            clearInterval(this.timer);
+                        if (timeLeft > 0) {
+                            this.timer = setTimeout(updateTimer, 100);
+                        } else {
                             this.hide();
                             resolve({ isConfirmed: true, dismiss: 'timer' });
                             this.resolve = null;
                         }
-                    }, 100);
+                    };
+
+                    this.timer = setTimeout(updateTimer, 100);
                 }
 
                 this.show();
@@ -612,13 +788,18 @@
             });
         }
 
-        // 显示提示消息 - 修复后的toast方法
+        // 显示提示消息 - 优化后的toast方法
         toast(options) {
             if (!this.toastElement) {
                 // 确保toast元素存在
                 this.toastElement = document.createElement('div');
                 this.toastElement.className = 'panai-toast';
                 document.body.appendChild(this.toastElement);
+            }
+
+            // 清除可能存在的旧计时器
+            if (this.toastTimer) {
+                clearTimeout(this.toastTimer);
             }
 
             this.toastElement.innerHTML = options.title || '';
@@ -628,17 +809,38 @@
                 this.toastElement.classList.add(options.icon);
             }
 
-            this.toastElement.classList.add('active');
+            // 使用requestAnimationFrame优化动画性能
+            requestAnimationFrame(() => {
+                this.toastElement.classList.add('active');
+            });
 
-            // 清除可能存在的旧计时器
+            // 设置自动隐藏计时器
+            this.toastTimer = setTimeout(() => {
+                requestAnimationFrame(() => {
+                    this.toastElement.classList.remove('active');
+                });
+            }, options.timer || 3000);
+        }
+
+        // 销毁对话框实例，清理事件监听器
+        destroy() {
+            // 清除计时器
+            this.clearTimer();
             if (this.toastTimer) {
                 clearTimeout(this.toastTimer);
             }
 
-            // 设置自动隐藏计时器
-            this.toastTimer = setTimeout(() => {
-                this.toastElement.classList.remove('active');
-            }, options.timer || 3000);
+            // 移除事件监听器
+            this.overlay.removeEventListener('click', this.handleOverlayClick);
+            document.removeEventListener('keydown', this.handleKeyDown);
+
+            // 从DOM中移除元素
+            if (this.overlay && this.overlay.parentNode) {
+                this.overlay.parentNode.removeChild(this.overlay);
+            }
+            if (this.toastElement && this.toastElement.parentNode) {
+                this.toastElement.parentNode.removeChild(this.toastElement);
+            }
         }
     }
 
