@@ -870,7 +870,7 @@
              * @returns {string|null} 参数值
              */
             parseQuery: (name) => {
-                const reg = new RegExp(`(?<=(?:${name})\\=)(?:wss:[a-zA-Z0-9]+|[\\w-]+)`, "i");
+                const reg = new RegExp(`(?<=(?:${name})\\=)[\\w-]+`, "i");
                 const pd = location.href.replace(/%3A/g, ":").match(reg);
                 return pd ? pd[0] : null;
             },
@@ -1094,7 +1094,8 @@
                 input: ['.pwd-inp .ivu-input'],
                 button: ['.pwd-inp .ivu-btn'],
                 name: '文叔叔网盘',
-                storage: 'hash'
+                storage: 'local',
+                storagePwdName: 'tmp_wenshushu_pwd'
             },
             'uc': {
                 reg: /(?:https?:\/\/)?drive\.uc\.cn\/s\/[a-zA-Z\d]+/,
@@ -1909,7 +1910,7 @@
             // Hash中的密码
             if (storageType === 'hash') {
                 // 过滤不正常的Hash
-                if (!/^(?:wss:[a-zA-Z\d]+|[a-zA-Z0-9]{3,8})$/.test(pwd)) {
+                if (!/^[a-zA-Z0-9_]{3,8}$/.test(pwd)) {
                     return;
                 }
             }
