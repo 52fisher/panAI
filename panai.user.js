@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手（持续更新版）
 // @namespace         https://github.com/52fisher/panAI
-// @version           2.2.4
+// @version           2.2.5
 // @author            YouXiaoHou,52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。支持识别 ✅百度网盘 ✅阿里云盘 ✅腾讯微云 ✅蓝奏云 ✅天翼云盘 ✅移动云盘 ✅迅雷云盘 ✅123云盘 ✅360云盘 ✅115网盘 ✅奶牛快传 ✅城通网盘 ✅夸克网盘 ✅FlowUs息流 ✅Chrome 扩展商店 ✅Edge 扩展商店 ✅Firefox 扩展商店 ✅Windows 应用商店。
 // @license           AGPL-3.0-or-later
@@ -51,8 +51,8 @@
         },
 
         parseQuery(name) {
-            let reg = new RegExp(`(?<=(?:${name})\\=)(?:wss:[a-zA-Z0-9]+|[\\w-]+)`, "i")
-            let pd = location.href.replace(/%3A/g, ":").match(reg);
+            let reg = new RegExp(`(?<=(?:${name})\\=)[\\w-]+`, "i")
+            let pd = location.href.match(reg);
             if (pd) {
                 return pd[0];
             }
@@ -260,7 +260,8 @@
             input: ['.pwd-inp .ivu-input'],
             button: ['.pwd-inp .ivu-btn'],
             name: '文叔叔网盘',
-            storage: 'hash'
+            storage: 'local',
+            storagePwdName: 'tmp_wenshushu_pwd'
         },
         'uc': {
             reg: /(?:https?:\/\/)?drive\.uc\.cn\/s\/[a-zA-Z\d]+/,
@@ -870,7 +871,7 @@
                         return;
                     }
                     if (val.storage === 'hash') {
-                        if (!/^(?:wss:[a-zA-Z\d]+|[a-zA-Z0-9]{3,8})$/.test(hash)) {//过滤掉不正常的Hash
+                        if (!/^[a-zA-Z0-9_]{3,8}$/.test(hash)) {//过滤掉不正常的Hash
                             return;
                         }
                         pwd = query || hash;
