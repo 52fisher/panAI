@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手(NEXT)
 // @namespace         https://github.com/52fisher/panAI
-// @version           3.1.7
+// @version           3.1.8
 // @author            52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。
 // @license           AGPL-3.0-or-later
@@ -23,20 +23,27 @@
 
 (function () {
 
+    // 设置项配置定义 - 集中管理所有设置项，避免重复定义
+    const SETTINGS_CONFIG = {
+        successTimes: { storageKey: 'setting_success_times', defaultValue: 0 },
+        autoClickBtn: { storageKey: 'setting_auto_click_btn', defaultValue: true },
+        activeInFront: { storageKey: 'setting_active_in_front', defaultValue: true },
+        timerOpen: { storageKey: 'setting_timer_open', defaultValue: false },
+        autoComplete: { storageKey: 'setting_auto_complete', defaultValue: false },
+        textAsPassword: { storageKey: 'setting_text_as_password', defaultValue: false },
+        timer: { storageKey: 'setting_timer', defaultValue: 5000 },
+        hotkeys: { storageKey: 'setting_hotkeys', defaultValue: 'F1' },
+        linkManagement: { storageKey: 'setting_link_management', defaultValue: false },
+        linkHistory: { storageKey: 'setting_link_history', defaultValue: [] },
+        autoDetectUnknownDisk: { storageKey: 'setting_auto_detect_unknown_disk', defaultValue: false }
+    };
+
     // 常量定义
     const CONSTANTS = {
-        DEFAULT_SETTINGS: [
-            { name: 'setting_success_times', value: 0 },
-            { name: 'setting_auto_click_btn', value: true },
-            { name: 'setting_active_in_front', value: true },
-            { name: 'setting_timer_open', value: false },
-            { name: 'setting_auto_complete', value: false },
-            { name: 'setting_text_as_password', value: false },
-            { name: 'setting_timer', value: 5000 },
-            { name: 'setting_hotkeys', value: 'F1' },
-            { name: 'setting_link_management', value: false },
-            { name: 'setting_link_history', value: [] }
-        ],
+        DEFAULT_SETTINGS: Object.values(SETTINGS_CONFIG).map(config => ({
+            storageKey: config.storageKey,
+            value: config.defaultValue
+        })),
         CUSTOM_CLASSES: {
             dialog: 'panai-dialog',
             dialogOverlay: 'panai-dialog-overlay',
@@ -1364,8 +1371,8 @@
      */
     function initSettings() {
         CONSTANTS.DEFAULT_SETTINGS.forEach(setting => {
-            if (util.getValue(setting.name) === undefined) {
-                util.setValue(setting.name, setting.value);
+            if (util.getValue(setting.storageKey) === undefined) {
+                util.setValue(setting.storageKey, setting.value);
             }
         });
     }
@@ -1403,10 +1410,10 @@
         const text = str || getSelectionContent(selection);
 
         // 自动推导网盘前缀的开关
-        const isAutoComplete = util.getValue('setting_auto_complete');
-        const isTextAsPassword = util.getValue('setting_text_as_password');
-        const isLinkManagement = util.getValue('setting_link_management');
-        const isPanLinkBackup = util.getValue('setting_auto_detect_unknown_disk');
+        const isAutoComplete = util.getValue(SETTINGS_CONFIG.autoComplete.storageKey);
+        const isTextAsPassword = util.getValue(SETTINGS_CONFIG.textAsPassword.storageKey);
+        const isLinkManagement = util.getValue(SETTINGS_CONFIG.linkManagement.storageKey);
+        const isPanLinkBackup = util.getValue(SETTINGS_CONFIG.autoDetectUnknownDisk.storageKey);
         // 选择相同文字或空不识别
         if (text === lastText || text === '') {
             return;
@@ -1472,7 +1479,7 @@
     function addLinkToHistory(linkObj, pwd) {
         try {
             // 获取现有历史记录
-            let history = util.getValue('setting_link_history') || [];
+            let history = util.getValue(SETTINGS_CONFIG.linkHistory.storageKey) || [];
 
             // 检查是否存在重复链接
             const existingIndex = history.findIndex(item => item.link === linkObj.link);
@@ -1501,7 +1508,7 @@
             const limitedHistory = history.slice(0, 50);
 
             // 保存到存储
-            util.setValue('setting_link_history', limitedHistory);
+            util.setValue(SETTINGS_CONFIG.linkHistory.storageKey, limitedHistory);
 
             util.clog('链接已添加到历史记录');
             // 添加用户反馈
@@ -1537,8 +1544,8 @@
             return;
         }
 
-        const timer = util.getValue('setting_timer');
-        const timerOpen = util.getValue('setting_timer_open');
+        const timer = util.getValue(SETTINGS_CONFIG.timer.storageKey);
+        const timerOpen = util.getValue(SETTINGS_CONFIG.timerOpen.storageKey);
 
         const html = `
             <div style="font-size: 14px;line-height: 22px;">
@@ -1573,7 +1580,7 @@
             }
 
             // 获取是否在前台打开的设置
-            const active = util.getValue('setting_active_in_front');
+            const active = util.getValue(SETTINGS_CONFIG.activeInFront.storageKey);
             let targetLink = linkObj.link;
 
             // 密码为空时，直接打开链接
@@ -1734,7 +1741,7 @@
      * 添加快捷键支持
      */
     function addHotKeySupport() {
-        const hotkey = util.getValue('setting_hotkeys');
+        const hotkey = util.getValue(SETTINGS_CONFIG.hotkeys.storageKey);
         hotkeys(hotkey, (event) => {
             event.preventDefault();
             showIdentifyBox();
@@ -1924,7 +1931,7 @@
         }
         // 处理未知网盘的密码填充逻辑
         const tmpPwd = util.getValue('tmp_common_pwd');
-        const isPanLinkBackup = util.getValue('setting_auto_detect_unknown_disk');
+        const isPanLinkBackup = util.getValue(SETTINGS_CONFIG.autoDetectUnknownDisk.storageKey);
 
         if (isPanLinkBackup && !panType && tmpPwd) {
             // 更全面地查找可能的密码输入框
@@ -2091,7 +2098,7 @@
                     }
                     input.dispatchEvent(event);
 
-                    if (util.getValue('setting_auto_click_btn')) {
+                    if (util.getValue(SETTINGS_CONFIG.autoClickBtn.storageKey)) {
                         await util.sleep(1000); //1秒后点击按钮
                         //若button被禁用，则需要重试
                         if (button && !button.disabled) {
@@ -2159,7 +2166,7 @@
         }).then(res => {
             lastText = 'lorem&';
             if (res.isConfirmed) {
-                util.setValue('setting_success_times', 0);
+                util.setValue(SETTINGS_CONFIG.successTimes.storageKey, 0);
                 history.go(0);
             }
         });
@@ -2169,7 +2176,7 @@
      * 显示识别框
      */
     function showIdentifyBox() {
-        const hotkeys = util.getValue('setting_hotkeys');
+        const hotkeys = util.getValue(SETTINGS_CONFIG.hotkeys.storageKey);
 
         const html = `
         <textarea
@@ -2229,28 +2236,28 @@
      * 显示设置框
      */
     function showSettingsBox() {
-        // 创建设置项配置数组，使用更具描述性的ID名称
+        // 创建设置项配置数组，使用 SETTINGS_CONFIG 中的配置避免重复定义
         const settings = [
             {
                 id: 'autoSubmitPassword',
                 label: '填写密码后自动提交',
                 type: 'checkbox',
-                storageKey: 'setting_auto_click_btn',
-                value: util.getValue('setting_auto_click_btn')
+                storageKey: SETTINGS_CONFIG.autoClickBtn.storageKey,
+                value: util.getValue(SETTINGS_CONFIG.autoClickBtn.storageKey)
             },
             {
                 id: 'openInFrontTab',
                 label: '前台打开网盘标签页',
                 type: 'checkbox',
-                storageKey: 'setting_active_in_front',
-                value: util.getValue('setting_active_in_front')
+                storageKey: SETTINGS_CONFIG.activeInFront.storageKey,
+                value: util.getValue(SETTINGS_CONFIG.activeInFront.storageKey)
             },
             {
                 id: 'enableAutoOpenTimer',
                 label: '倒计时结束自动打开',
                 type: 'checkbox',
-                storageKey: 'setting_timer_open',
-                value: util.getValue('setting_timer_open'),
+                storageKey: SETTINGS_CONFIG.timerOpen.storageKey,
+                value: util.getValue(SETTINGS_CONFIG.timerOpen.storageKey),
                 onchange: function (e) {
                     const rangeWrapper = document.getElementById('timerRangeWrapper');
                     if (rangeWrapper) {
@@ -2262,14 +2269,14 @@
                 id: 'timerRange',
                 label: '倒计时',
                 type: 'range',
-                storageKey: 'setting_timer',
-                value: util.getValue('setting_timer'),
+                storageKey: SETTINGS_CONFIG.timer.storageKey,
+                value: util.getValue(SETTINGS_CONFIG.timer.storageKey),
                 min: 0,
                 max: 10000,
                 step: 1000,
                 wrapperId: 'timerRangeWrapper',
-                wrapperStyle: { display: util.getValue('setting_timer_open') ? 'flex' : 'none' },
-                extraContent: `<span id="timerValueDisplay">(${util.getValue('setting_timer') / 1000}秒)</span>`,
+                wrapperStyle: { display: util.getValue(SETTINGS_CONFIG.timerOpen.storageKey) ? 'flex' : 'none' },
+                extraContent: `<span id="timerValueDisplay">(${util.getValue(SETTINGS_CONFIG.timer.storageKey) / 1000}秒)</span>`,
                 onchange: function (e) {
                     const timerDisplay = document.getElementById('timerValueDisplay');
                     if (timerDisplay) {
@@ -2281,39 +2288,39 @@
                 id: 'useTextAsPassword',
                 label: '超链接的文本内容作为密码（实验性）',
                 type: 'checkbox',
-                storageKey: 'setting_text_as_password',
-                value: util.getValue('setting_text_as_password')
+                storageKey: SETTINGS_CONFIG.textAsPassword.storageKey,
+                value: util.getValue(SETTINGS_CONFIG.textAsPassword.storageKey)
             },
             {
                 id: 'enableAutoComplete',
                 label: '自动推导网盘链接(实验性)',
                 type: 'checkbox',
-                storageKey: 'setting_auto_complete',
-                value: util.getValue('setting_auto_complete'),
+                storageKey: SETTINGS_CONFIG.autoComplete.storageKey,
+                value: util.getValue(SETTINGS_CONFIG.autoComplete.storageKey),
                 title: '目前仅支持百度、迅雷、夸克等网盘链接进行自动推导补全'
             },
             {
                 id: 'enableAutoDetectUnknownDisk',
                 label: '自动识别未知网盘（实验性）',
                 type: 'checkbox',
-                storageKey: 'setting_auto_detect_unknown_disk',
-                value: util.getValue('setting_auto_detect_unknown_disk'),
+                storageKey: SETTINGS_CONFIG.autoDetectUnknownDisk.storageKey,
+                value: util.getValue(SETTINGS_CONFIG.autoDetectUnknownDisk.storageKey),
                 title: '开启后，助手将尝试识别未知的网盘链接。'
             },
             {
                 id: 'enableLinkManagement',
                 label: '链接管理（实验性）',
                 type: 'checkbox',
-                storageKey: 'setting_link_management',
-                value: util.getValue('setting_link_management'),
+                storageKey: SETTINGS_CONFIG.linkManagement.storageKey,
+                value: util.getValue(SETTINGS_CONFIG.linkManagement.storageKey),
                 title: '开启后会记录识别的网盘链接历史'
             },
             {
                 id: 'hotkeySettings',
                 label: '快捷键设置',
                 type: 'text',
-                storageKey: 'setting_hotkeys',
-                value: util.getValue('setting_hotkeys'),
+                storageKey: SETTINGS_CONFIG.hotkeys.storageKey,
+                value: util.getValue(SETTINGS_CONFIG.hotkeys.storageKey),
                 inputStyle: { width: '100px' }
             }
         ];
@@ -2416,12 +2423,12 @@
      */
     function registerMenuCommands() {
         GM_registerMenuCommand(
-            `👀 已识别：${util.getValue('setting_success_times')}次`,
+            `👀 已识别：${util.getValue(SETTINGS_CONFIG.successTimes.storageKey)}次`,
             () => resetIdentifyCount()
         );
 
         GM_registerMenuCommand(
-            `📋️ 识别剪切板中文字（快捷键 ${util.getValue('setting_hotkeys')}）`,
+            `📋️ 识别剪切板中文字（快捷键 ${util.getValue(SETTINGS_CONFIG.hotkeys.storageKey)}）`,
             () => showIdentifyBox()
         );
 
@@ -2440,7 +2447,7 @@
      * 显示链接历史记录
      */
     function showLinkHistory() {
-        const isLinkManagement = util.getValue('setting_link_management');
+        const isLinkManagement = util.getValue(SETTINGS_CONFIG.linkManagement.storageKey);
 
         if (!isLinkManagement) {
             dialog.alert({
@@ -2452,7 +2459,7 @@
         }
 
         // 获取历史记录
-        const history = util.getValue('setting_link_history') || [];
+        const history = util.getValue(SETTINGS_CONFIG.linkHistory.storageKey) || [];
 
         if (history.length === 0) {
             dialog.alert({
@@ -2545,7 +2552,7 @@
             cancelButtonText: '取消'
         }).then(res => {
             if (res.isConfirmed) {
-                util.setValue('setting_link_history', []);
+                util.setValue(SETTINGS_CONFIG.linkHistory.storageKey, []);
                 dialog.toast({
                     title: '历史记录已清空',
                     icon: 'success',
@@ -2563,10 +2570,10 @@
      */
     function handleDeleteHistoryItem(event) {
         const itemId = event.target.dataset.id;
-        const history = util.getValue('setting_link_history') || [];
+        const history = util.getValue(SETTINGS_CONFIG.linkHistory.storageKey) || [];
         const updatedHistory = history.filter(item => item.id !== itemId);
 
-        util.setValue('setting_link_history', updatedHistory);
+        util.setValue(SETTINGS_CONFIG.linkHistory.storageKey, updatedHistory);
         dialog.toast({
             title: '记录已删除',
             icon: 'success',
