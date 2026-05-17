@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手(NEXT)
 // @namespace         https://github.com/52fisher/panAI
-// @version           3.1.8
+// @version           3.1.9
 // @author            52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。
 // @license           AGPL-3.0-or-later
@@ -24,17 +24,39 @@
 (function () {
 
     // 设置项配置定义 - 集中管理所有设置项，避免重复定义
+    // 统一管理所有设置项的配置信息，后续修改只需在此处修改一次
     const SETTINGS_CONFIG = {
+        // 成功识别次数统计
         successTimes: { storageKey: 'setting_success_times', defaultValue: 0 },
+        
+        // 填写密码后自动点击提交按钮
         autoClickBtn: { storageKey: 'setting_auto_click_btn', defaultValue: true },
+        
+        // 前台打开网盘链接，立即激活新标签页
         activeInFront: { storageKey: 'setting_active_in_front', defaultValue: true },
+        
+        // 倒计时结束后自动打开链接
         timerOpen: { storageKey: 'setting_timer_open', defaultValue: false },
+        
+        // 自动补全网盘链接前缀（http://等）
         autoComplete: { storageKey: 'setting_auto_complete', defaultValue: false },
+        
+        // 将超链接文本内容作为密码（实验性功能）
         textAsPassword: { storageKey: 'setting_text_as_password', defaultValue: false },
+        
+        // 倒计时时长（毫秒）
         timer: { storageKey: 'setting_timer', defaultValue: 5000 },
+        
+        // 快捷键设置，触发识别功能的键盘快捷键
         hotkeys: { storageKey: 'setting_hotkeys', defaultValue: 'F1' },
+        
+        // 链接管理功能（实验性），启用历史记录功能
         linkManagement: { storageKey: 'setting_link_management', defaultValue: false },
+        
+        // 链接历史记录数据
         linkHistory: { storageKey: 'setting_link_history', defaultValue: [] },
+        
+        // 自动检测未知网盘链接（实验性功能）
         autoDetectUnknownDisk: { storageKey: 'setting_auto_detect_unknown_disk', defaultValue: false }
     };
 
@@ -57,6 +79,20 @@
             denyButton: 'panai-deny-btn',
             timerBar: 'panai-timer-bar'
         },
+        /**
+         * 提取码正则表达式
+         * @description 匹配网页文本中的网盘提取码/密码
+         * @匹配规则说明：
+         *   - wss:[a-zA-Z0-9]+ : 匹配 wss: 开头的分享链接格式
+         *   - (?<=...) : 正向后瞻断言，匹配特定关键词后的密码
+         *   - (?:密|提取|访问|訪問|key|password|pwd|#|\?p=|\?code=) : 关键词列表
+         *     - 密/提取/访问/訪問 : 中文关键词
+         *     - key/password/pwd : 英文关键词
+         *     - #/?p=/?code= : URL参数格式
+         *   - [码號]? : 可选的中文"码"或"號"字
+         *   - [：:=]? : 可选的分隔符（中文冒号、英文冒号、等号）
+         *   - [a-zA-Z0-9]{3,8} : 提取码主体，3-8位字母或数字
+         */
         PASSWORD_REGEX: /wss:[a-zA-Z0-9]+|(?<=\s*(?:密|提取|访问|訪問|key|password|pwd|#|\?p=|\?code=)\s*[码碼]?\s*[：:=]?\s*)[a-zA-Z0-9]{3,8}/i,
         PLUGIN_STYLES: `
         /* CSS Variables for easy theming */
@@ -523,9 +559,22 @@
         }`
     };
 
-    // 自定义Dialog组件
+    /**
+     * 自定义Dialog组件 - 轻量级弹窗组件（单例模式）
+     * @description 完全替代sweetalert2，提供更好的性能和兼容性
+     *              支持alert、confirm、toast等多种弹窗类型
+     *              使用requestAnimationFrame优化动画性能
+     */
     class Dialog {
+        // 单例实例
+        static instance = null;
+        
         constructor() {
+            // 如果已存在实例，返回已有实例
+            if (Dialog.instance) {
+                return Dialog.instance;
+            }
+            
             // 绑定方法的上下文，确保this指向正确
             this.toast = this.toast.bind(this);
             this.handleOverlayClick = this.handleOverlayClick.bind(this);
@@ -581,6 +630,9 @@
             this.timerBar = null;
             this.resolve = null;
             this.toastTimer = null;
+            
+            // 保存单例实例
+            Dialog.instance = this;
         }
 
         // 绑定事件
@@ -617,6 +669,9 @@
 
         // 显示对话框
         show() {
+            // 标记开始显示，防止被hide()清空
+            this.startShowing();
+            
             // 使用requestAnimationFrame优化动画性能
             requestAnimationFrame(() => {
                 this.overlay.classList.add('active');
@@ -627,6 +682,11 @@
         hide() {
             // 使用requestAnimationFrame优化动画性能
             requestAnimationFrame(() => {
+                // 检查是否正在显示新内容，如果是则不隐藏
+                if (this.isShowing) {
+                    return;
+                }
+                
                 this.overlay.classList.remove('active');
                 this.clearButtons();
                 this.clearTimer();
@@ -634,7 +694,20 @@
                 // 清空内容
                 this.body.innerHTML = '';
                 this.title.innerHTML = '';
+                
+                // 标记显示结束
+                this.endShowing();
             });
+        }
+        
+        // 标记开始显示
+        startShowing() {
+            this.isShowing = true;
+        }
+        
+        // 标记显示结束
+        endShowing() {
+            this.isShowing = false;
         }
 
         // 清除按钮
@@ -668,7 +741,15 @@
             return button;
         }
 
-        // 普通提示框
+        /**
+         * 显示警告提示框
+         * @param {Object} options - 配置选项
+         * @param {string} [options.title] - 弹窗标题
+         * @param {string} [options.html] - 弹窗内容（支持HTML）
+         * @param {string} [options.text] - 弹窗内容（纯文本）
+         * @param {string} [options.confirmButtonText] - 确认按钮文本，默认"确定"
+         * @returns {Promise<Object>} Promise对象，包含 isConfirmed 属性
+         */
         alert(options) {
             return new Promise((resolve) => {
                 this.title.innerHTML = options.title || '';
@@ -686,7 +767,21 @@
             });
         }
 
-        // 确认对话框
+        /**
+         * 显示确认对话框
+         * @param {Object} options - 配置选项
+         * @param {string} [options.title] - 弹窗标题
+         * @param {string} [options.html] - 弹窗内容（支持HTML）
+         * @param {string} [options.text] - 弹窗内容（纯文本）
+         * @param {string} [options.confirmButtonText] - 确认按钮文本，默认"确定"
+         * @param {string} [options.cancelButtonText] - 取消按钮文本，默认"取消"
+         * @param {number} [options.timer] - 自动关闭计时器（毫秒）
+         * @returns {Promise<Object>} 返回结果对象
+         * @returns {boolean} return.isConfirmed - 用户是否点击确认
+         * @returns {boolean} return.isDenied - 用户是否点击否认
+         * @returns {string} return.dismiss - 关闭方式（'close'/'timer'/'cancel'）
+         * @returns {Object} return.inputValues - 输入框的值（如果包含输入框）
+         */
         confirm(options) {
             return new Promise((resolve) => {
                 this.resolve = resolve;
@@ -795,7 +890,14 @@
             });
         }
 
-        // 显示提示消息 - 优化后的toast方法
+        /**
+         * 显示轻量级提示消息（Toast）
+         * @param {Object} options - 配置选项
+         * @param {string} options.title - 提示内容
+         * @param {string} [options.icon] - 图标类型：success/error/warning/info
+         * @param {number} [options.timer] - 显示时长（毫秒），默认3000
+         * @description 自动隐藏，无需手动关闭，适用于操作反馈
+         */
         toast(options) {
             if (!this.toastElement) {
                 // 确保toast元素存在
@@ -1547,6 +1649,17 @@
         const timer = util.getValue(SETTINGS_CONFIG.timer.storageKey);
         const timerOpen = util.getValue(SETTINGS_CONFIG.timerOpen.storageKey);
 
+        // 使用模板字符串生成HTML，配合链接清理避免反引号问题
+        // 清理链接中的特殊字符，防止破坏HTML结构
+        const cleanLink = linkObj.link
+            .replace(/[`'"]+/g, '')                    // 普通引号（允许连续多个）
+            .replace(/[\u2018\u2019\u201C\u201D]/g, '')  // 智能引号
+            .replace(/[\u0060\u2032\u2033\u201B]/g, '')   // 其他引号变体
+            .trim();
+
+        const timerText = timerOpen ? `<div style="color: #999;font-size: 12px;text-align: center;margin-top: 10px;">${timer / 1000}秒后自动打开</div>` : '';
+        
+        // 使用模板字符串生成HTML
         const html = `
             <div style="font-size: 14px;line-height: 22px;">
                 <div style="margin-bottom: 10px;">
@@ -1555,16 +1668,16 @@
                 </div>
                 <div style="margin-bottom: 10px;">
                     <span style="font-weight: 700;color: #333;">链接：</span>
-                    <span style="color: #2778c4;word-break: break-all;">${linkObj.link}</span>
+                    <span style="color: #2778c4;word-break: break-all;">${cleanLink}</span>
                 </div>
                 <div style="margin-bottom: 10px;">
                     <span style="font-weight: 700;color: #333;">提取码：</span>
                     <span style="color: #e74c3c;font-weight: 700;">${pwd || '无'}</span>
                 </div>
-                ${timerOpen ? `<div style="color: #999;font-size: 12px;text-align: center;margin-top: 10px;">${timer / 1000}秒后自动打开</div>` : ''}
+                ${timerText}
             </div>
         `;
-
+    
         dialog.confirm({
             title: '检测到网盘链接',
             html: html,
@@ -1572,6 +1685,7 @@
             cancelButtonText: '取消',
             timer: timerOpen ? timer : null
         }).then(res => {
+            util.clog(res)
             lastText = 'lorem&';
 
             // 防御式编程
@@ -2208,6 +2322,7 @@
             util.clog(res)
             if (res.isConfirmed) {
                 const value = res.inputValues['panai-textarea']
+                util.clog(value)
                 smartIdentify(null, value);
             }
             if (res.isDenied) {
