@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手(NEXT)
 // @namespace         https://github.com/52fisher/panAI
-// @version           3.1.9
+// @version           3.2.0
 // @author            52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。
 // @license           AGPL-3.0-or-later
@@ -669,34 +669,18 @@
 
         // 显示对话框
         show() {
-            // 标记开始显示，防止被hide()清空
-            this.startShowing();
-            
             // 使用requestAnimationFrame优化动画性能
             requestAnimationFrame(() => {
                 this.overlay.classList.add('active');
             });
         }
 
-        // 隐藏对话框
+        // 隐藏对话框（不清空内容，由调用者负责）
         hide() {
             // 使用requestAnimationFrame优化动画性能
             requestAnimationFrame(() => {
-                // 检查是否正在显示新内容，如果是则不隐藏
-                if (this.isShowing) {
-                    return;
-                }
-                
                 this.overlay.classList.remove('active');
-                this.clearButtons();
                 this.clearTimer();
-
-                // 清空内容
-                this.body.innerHTML = '';
-                this.title.innerHTML = '';
-                
-                // 标记显示结束
-                this.endShowing();
             });
         }
         
