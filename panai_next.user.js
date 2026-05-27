@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手(NEXT)
 // @namespace         https://github.com/52fisher/panAI
-// @version           3.2.0
+// @version           3.2.1
 // @author            52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。
 // @license           AGPL-3.0-or-later
@@ -342,7 +342,7 @@
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            animation: toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: none; /* 默认隐藏，避免闪现 */
         }
 
         @keyframes toastSlideIn {
@@ -357,8 +357,10 @@
         }
 
         .panai-toast.active {
+            display: block;
             opacity: 1;
             transform: translateX(-50%) translateY(0);
+            animation: toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .panai-toast.success {
@@ -541,8 +543,7 @@
 
         /* 减少重排和重绘的优化 */
         .panai-dialog-overlay,
-        .panai-dialog-content,
-        .panai-toast {
+        .panai-dialog-content {
             will-change: transform, opacity;
         }
 
