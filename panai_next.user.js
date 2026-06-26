@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手(NEXT)
 // @namespace         https://github.com/52fisher/panAI
-// @version           3.2.1
+// @version           3.2.2
 // @author            52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。
 // @license           AGPL-3.0-or-later
@@ -47,8 +47,8 @@
         // 倒计时时长（毫秒）
         timer: { storageKey: 'setting_timer', defaultValue: 5000 },
         
-        // 快捷键设置，触发识别功能的键盘快捷键
-        hotkeys: { storageKey: 'setting_hotkeys', defaultValue: 'F1' },
+        // 快捷键设置，触发识别功能的键盘快捷键（默认为空，需用户手动设置）
+        hotkeys: { storageKey: 'setting_hotkeys', defaultValue: '' },
         
         // 链接管理功能（实验性），启用历史记录功能
         linkManagement: { storageKey: 'setting_link_management', defaultValue: false },
@@ -1841,10 +1841,13 @@
      */
     function addHotKeySupport() {
         const hotkey = util.getValue(SETTINGS_CONFIG.hotkeys.storageKey);
-        hotkeys(hotkey, (event) => {
-            event.preventDefault();
-            showIdentifyBox();
-        });
+        // 只有设置了快捷键才注册
+        if (hotkey && hotkey.trim()) {
+            hotkeys(hotkey, (event) => {
+                event.preventDefault();
+                showIdentifyBox();
+            });
+        }
     }
 
     /**
@@ -2276,15 +2279,19 @@
      */
     function showIdentifyBox() {
         const hotkeys = util.getValue(SETTINGS_CONFIG.hotkeys.storageKey);
+        // 根据快捷键设置生成提示文字
+        const hotkeyTip = hotkeys && hotkeys.trim()
+            ? `<div style="font-size: 12px;color: #999;margin-bottom: 8px;text-align: center;">
+                提示：在任意网页按下 <span style="font-weight: 700;">${hotkeys}</span> 键可快速打开本窗口。
+            </div>`
+            : '';
 
         const html = `
         <textarea
             placeholder="若选方式一，请按 Ctrl+V 粘贴要识别的文字"
             id="panai-textarea"
         ></textarea>
-        <div style="font-size: 12px;color: #999;margin-bottom: 8px;text-align: center;">
-            提示：在任意网页按下 <span style="font-weight: 700;">${hotkeys}</span> 键可快速打开本窗口。
-        </div>
+        ${hotkeyTip}
         <div style="font-size: 14px;line-height: 22px;padding: 10px 0 5px;text-align: left;">
             <div style="font-size: 16px;margin-bottom: 8px;font-weight: 700;">支持以下两种方式：</div>
             <div><b>方式一：</b>直接粘贴文字到输入框，点击“识别方框内容”按钮。</div>
@@ -2527,8 +2534,10 @@
             () => resetIdentifyCount()
         );
 
+        const hotkey = util.getValue(SETTINGS_CONFIG.hotkeys.storageKey);
+        const hotkeyText = hotkey ? `（快捷键 ${hotkey}）` : '';
         GM_registerMenuCommand(
-            `📋️ 识别剪切板中文字（快捷键 ${util.getValue(SETTINGS_CONFIG.hotkeys.storageKey)}）`,
+            `📋️ 识别剪切板中文字${hotkeyText}`,
             () => showIdentifyBox()
         );
 
@@ -2537,10 +2546,14 @@
             () => showSettingsBox()
         );
 
-        GM_registerMenuCommand(
-            '📖 查看历史记录',
-            () => showLinkHistory()
-        );
+        // 只有开启链接管理功能时才注册历史记录菜单项
+        const isLinkManagement = util.getValue(SETTINGS_CONFIG.linkManagement.storageKey);
+        if (isLinkManagement) {
+            GM_registerMenuCommand(
+                '📖 查看历史记录',
+                () => showLinkHistory()
+            );
+        }
     }
 
     /**
@@ -2575,7 +2588,7 @@
             <div style="font-size: 14px;">
                 <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
                     <h4 style="margin: 0; color: #333;">已识别的网盘链接（${history.length}条）</h4>
-                    <button id="clear-history-btn" style="padding: 6px 12px; background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-size: 12px;">清空历史</button>
+                    <button id="clear-history-btn" style="padding: 6px 12px; background: #dc3545; color: #fff; border: 1px solid #dc3545; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">清空历史</button>
                 </div>
                 <div style="max-height: 400px; overflow-y: auto;">
         `;
