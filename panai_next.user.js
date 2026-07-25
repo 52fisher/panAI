@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手(NEXT)
 // @namespace         https://github.com/52fisher/panAI
-// @version           3.2.2
+// @version           3.2.3
 // @author            52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。
 // @license           AGPL-3.0-or-later
@@ -1616,6 +1616,51 @@
     }
 
     /**
+     * 打开网盘链接
+     * @param {Object} linkObj - 链接对象
+     * @param {string} pwd - 提取码
+     */
+    function openPanLink(linkObj, pwd) {
+        const active = util.getValue(SETTINGS_CONFIG.activeInFront.storageKey);
+        let targetLink = linkObj.link;
+
+        // 密码为空时，直接打开链接
+        if (!pwd) {
+            GM_openInTab(targetLink, { active });
+            return;
+        }
+        //linkObj.storage可能是function/local/hash，如果是function，需要执行
+        const storage = typeof linkObj.storage === 'function' ? linkObj.storage() : linkObj.storage;
+        if (storage === "local") {
+            util.setValue(linkObj.storagePwdName, pwd);
+        } else if (storage === "hash") {
+            // 链接中没有#：使用三目运算符直接拼接pwd参数和#hash
+            targetLink = linkObj.link.includes('?')
+                ? `${linkObj.link}&pwd=${pwd}#${pwd}`
+                : `${linkObj.link}?pwd=${pwd}#${pwd}`;
+
+            // 若为hash模式：需要考虑框架路由情况
+            const { isHashMode, hashPart, urlPart } = parseHashRoute(linkObj.link);
+            if (isHashMode) {
+                targetLink = urlPart.includes('?')
+                    ? `${urlPart}&pwd=${pwd}#${hashPart}`
+                    : `${urlPart}?pwd=${pwd}#${hashPart}`;
+            }
+        }
+        // 链接安全检查
+        if (!/^https?:\/\/.+/.test(targetLink)) {
+            dialog.toast({
+                title: '链接格式不正确，无法打开！',
+                icon: 'error'
+            });
+            return;
+        }
+
+        // 打开标签页
+        GM_openInTab(targetLink, { active });
+    }
+    
+    /**
      * 处理检测到的链接
      * @param {Object} linkObj - 链接对象
      * @param {string} pwd - 提取码
@@ -1631,8 +1676,14 @@
             return;
         }
 
-        const timer = util.getValue(SETTINGS_CONFIG.timer.storageKey);
+        const timer = Number(util.getValue(SETTINGS_CONFIG.timer.storageKey));
         const timerOpen = util.getValue(SETTINGS_CONFIG.timerOpen.storageKey);
+
+        // 当倒计时为0且启用自动打开时，直接打开链接
+        if (timerOpen && timer <= 0) {
+            openPanLink(linkObj, pwd);
+            return;
+        }
 
         // 使用模板字符串生成HTML，配合链接清理避免反引号问题
         // 清理链接中的特殊字符，防止破坏HTML结构
@@ -1671,59 +1722,45 @@
             timer: timerOpen ? timer : null
         }).then(res => {
             util.clog(res)
-            lastText = 'lorem&';
 
             // 防御式编程
             if (!res.isConfirmed && res.dismiss !== 'timer') {
+                lastText = 'lorem&';
                 return;
             }
 
-            // 获取是否在前台打开的设置
-            const active = util.getValue(SETTINGS_CONFIG.activeInFront.storageKey);
-            let targetLink = linkObj.link;
-
-            // 密码为空时，直接打开链接
-            if (!pwd) {
-                GM_openInTab(targetLink, { active });
-                return;
-            }
-            //linkObj.storage可能是function/local/hash，如果是function，需要执行
-            const storage = typeof linkObj.storage === 'function' ? linkObj.storage() : linkObj.storage;
-            if (storage === "local") {
-                util.setValue(linkObj.storagePwdName, pwd);
-            } else if (storage === "hash") {
-                // 链接中没有#：使用三目运算符直接拼接pwd参数和#hash
-                targetLink = linkObj.link.includes('?')
-                    ? `${linkObj.link}&pwd=${pwd}#${pwd}`
-                    : `${linkObj.link}?pwd=${pwd}#${pwd}`;
-
-                // 若为hash模式：需要考虑框架路由情况
-                if (linkObj.link.includes('#')) {
-                    const hashIndex = linkObj.link.indexOf('#');
-                    const hashPart = linkObj.link.slice(hashIndex + 1);
-                    const urlPart = linkObj.link.slice(0, hashIndex);
-
-                    // 判断是否为框架路由模式
-                    const isFrameworkRoute = hashPart.startsWith('/') || hashPart.includes('?') || hashPart.includes('=');
-                    if (isFrameworkRoute) {
-                        targetLink = urlPart.includes('?')
-                            ? `${urlPart}&pwd=${pwd}#${hashPart}`
-                            : `${urlPart}?pwd=${pwd}#${hashPart}`;
-                    }
-                }
-            }
-            // 链接安全检查
-            if (!/^https?:\/\/.+/.test(targetLink)) {
-                dialog.toast({
-                    title: '链接格式不正确，无法打开！',
-                    icon: 'error'
-                });
-                return;
+            // 用户手动点击打开时标记已处理
+            // 计时器自动打开时不设置lastText，保留原选中内容作为防重复标记
+            if (res.isConfirmed && res.dismiss !== 'timer') {
+                lastText = 'lorem&';
             }
 
-            // 打开标签页
-            GM_openInTab(targetLink, { active });
+            // 打开网盘链接
+            openPanLink(linkObj, pwd);
         });
+    }
+
+    /**
+     * 解析链接的hash路由信息
+     * @param {string} link - 完整的URL链接
+     * @returns {Object} - hash路由信息对象
+     * @property {boolean} isHashMode - 是否为框架路由的hash模式
+     * @property {string} hashPart - hash部分（不含#）
+     * @property {string} urlPart - 除hash外的URL部分
+     */
+    function parseHashRoute(link) {
+        if (!link.includes('#')) {
+            return { isHashMode: false, hashPart: '', urlPart: link };
+        }
+        const hashIndex = link.indexOf('#');
+        const hashPart = link.slice(hashIndex + 1);
+        const urlPart = link.slice(0, hashIndex);
+        const isFrameworkRoute = hashPart.startsWith('/') || hashPart.includes('?') || hashPart.includes('=');
+        return {
+            isHashMode: isFrameworkRoute,
+            hashPart,
+            urlPart
+        };
     }
 
     /**
@@ -1997,9 +2034,11 @@
     * 自动填写密码
     */
     function autoFillPassword() {
+        const {isHashMode, hashPart} = parseHashRoute(location.href);
         // 从URL获取密码
         const queryPwd = util.parseQuery('pwd|p');
-        const hashPwd = location.hash.slice(1).replace(/\W/g, ""); // 过滤非密码字符
+        // 从Hash中获取密码,如果为路由Hash模式,则此时Hash密码不可信
+        const hashPwd = isHashMode ? '' : hashPart.replace(/\W/g, ""); // 过滤非密码字符
         let pwd = queryPwd || hashPwd;
 
         // 检测当前网盘类型
