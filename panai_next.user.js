@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手(NEXT)
 // @namespace         https://github.com/52fisher/panAI
-// @version           3.2.3
+// @version           3.2.4
 // @author            52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。
 // @license           AGPL-3.0-or-later
@@ -93,7 +93,7 @@
          *   - [：:=]? : 可选的分隔符（中文冒号、英文冒号、等号）
          *   - [a-zA-Z0-9]{3,8} : 提取码主体，3-8位字母或数字
          */
-        PASSWORD_REGEX: /wss:[a-zA-Z0-9]+|(?<=\s*(?:密|提取|访问|訪問|key|password|pwd|#|\?p=|\?code=)\s*[码碼]?\s*[：:=]?\s*)[a-zA-Z0-9]{3,8}/i,
+        PASSWORD_REGEX: /wss:[a-zA-Z0-9]+|\b(?<=\s*(?:密|提取|访问|訪問|key|password|pwd|#|\?p=|\?code=)\s*[码碼]?\s*[：:=]?\s*)[a-zA-Z0-9]{3,8}/i,
         PLUGIN_STYLES: `
         /* CSS Variables for easy theming */
         :root {
