@@ -1493,6 +1493,11 @@
      * @param {string} str - 要识别的字符串
      */
     async function smartIdentify(event, str = '') {
+        const activeEl = event.target.tagName;
+        // 如果焦点在输入框、文本域、可编辑元素，直接return，不执行识别
+        if(['INPUT','TEXTAREA'].includes(activeEl) || activeEl.isContentEditable){
+            return;
+        }
         const selection = window.getSelection();
         const text = str || getSelectionContent(selection);
 
