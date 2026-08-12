@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手(NEXT)
 // @namespace         https://github.com/52fisher/panAI
-// @version           3.2.5
+// @version           3.2.6
 // @author            52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。
 // @license           AGPL-3.0-or-later
@@ -19,6 +19,7 @@
 // @grant             GM_getResourceText
 // @grant             GM_info
 // @icon              data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4Ij48cGF0aCBkPSJNMTAzLjYgMTA3LjRjMy41LTIuMiA4LjktNi4xIDEzLjgtMTIuNXM3LjMtMTIuNSA4LjUtMTYuNWMuNS0xLjcgMi4yLTcuNSAyLjItMTQuNyAwLTEwLjEtMy4zLTI1LjEtMTUuNC0zNi44LTE0LjUtMTQtMzIuMS0xNC4zLTM1LjctMTQuMy04IDAtMTUuNyAxLjktMjIuNiA1LjJDNDQgMjMgMzUuNyAzMS40IDMwLjggNDEuN2MtMS4zIDIuOC00IDQuNy03LjEgNS00IC4zLTcuNSA0LjQtOC45IDkuNi0uNSAxLjktMS42IDMuNS0zLjEgNC43QzQuNCA2Ni44IDAgNzUuNyAwIDg1YzAgNi44IDIuMyAxMy4xIDYuMSAxOC4yIDUuNSA3LjQgMTQuMiAxMi4yIDI0IDEyLjJoNDcuMWM0LjQgMCAxMS0uNSAxOC4zLTMuNSAzLjItMS40IDUuOS0zIDguMS00LjV6IiBmaWxsPSIjNDQ0Ii8+PHBhdGggZD0iTTExOS44IDY0LjNjLjEtMTcuMS0xMC40LTI4LTEyLjUtMzAuMUM5NSAyMi4xIDc5LjkgMjEuOCA3Ni45IDIxLjhjLTE3LjYgMC0zMy4zIDEwLjUtMzkuOSAyNi43LS42IDEuMy0xLjggMi4zLTMuNCAyLjNoLS40Yy01LjggMC0xMC42IDQuOC0xMC42IDEwLjd2LjVjMCAxLjQtLjggMi42LTEuOSAzLjNDMTMuNCA2OSA4LjggNzYuOCA4LjggODVjMCAxMi4yIDkuOSAyMi4zIDIyLjIgMjIuM2g0NS4yYzMuNi0uMSAxNy42LS45IDI5LjYtMTIgMi45LTIuOCAxMy45LTEzLjcgMTQtMzF6IiBmaWxsPSIjZGI4NDEyIi8+PHBhdGggZD0iTTExMC44IDU3LjRsLjIgMy4zYzAgMS4zLTEuMSAyLjQtMi4zIDIuNC0xLjMgMC0yLjMtMS4xLTIuMy0yLjRsLS4xLTIuOHYtLjNjMC0xLjIuOS0yLjIgMi4xLTIuM2guM2MuNyAwIDEuMy4zIDEuNy43LS4yLjEuMy41LjQgMS40em0tMy4zLTEwLjNjMCAxLjItMSAyLjMtMi4yIDIuM2gtLjFjLS44IDAtMS42LS41LTItMS4yLTQuNi04LjMtMTMuMy0xMy41LTIyLjgtMTMuNS0xLjIgMC0yLjMtMS0yLjMtMi4ydi0uMWMwLTEuMiAxLTIuMyAyLjItMi4zaC4xYTMwLjM3IDMwLjM3IDAgMCAxIDE1LjggNC40YzQuNiAyLjggOC40IDYuOCAxMS4xIDExLjUuMS4zLjIuNy4yIDEuMXpNNjkuMiA0OWwxOS40IDE0LjhjMS45IDEuNSAzLjEgMy41IDMuNSA1Ljd2LjJjLjEuNC4xLjguMSAxLjIgMCAuNi0uMSAxLjEtLjIgMS42LS40IDIuMi0xLjcgNC4yLTMuNSA1LjZMNjkuMyA5M2MtMi42IDItNS40IDIuNS03LjcgMS40LS4xLS4xLS4yLS4xLS4yLS4yLTItMS4yLTMuMi0zLjUtMy4yLTYuNHYtNi42aC01LjdjLTYuOCAwLTEyLTQuNy0xMi0xMC45IDAtNC44IDIuNi04LjUgNy4yLTEwLjMgMS4zLS41IDIuNy4yIDMuMiAxLjVzLS4xIDIuOC0xLjQgMy4zYy0yLjcgMS4xLTQgMi45LTQgNS41IDAgMy41IDMgNiA3IDZoOC4xYy41IDAgMSAuMiAxLjQuNi43LjYgMS4xIDEuNyAxLjEgMi42djguNGMwIDEuMy40IDIgLjcgMi4xLjQuMiAxLjMgMCAyLjQtLjlsMTkuMi0xNC45YzEuMi0uOSAxLjgtMi4xIDEuOC0zLjNzLS42LTIuMy0xLjctMy4xTDY2LjIgNTNjLTEuMS0uOS0yLTEuMS0yLjQtLjktLjMuMi0uNy45LS43IDIuMXY3LjZjMCAuOS0uNSAxLjctMS4yIDIuMS0uNC4zLS44LjQtMS4zLjQtMS40IDAtMi41LTEuMS0yLjUtMi41di03LjZjMC0zLjEgMS4zLTUuNSAzLjUtNi42bC43LS4zYzIuMS0uNyA0LjYtLjEgNi45IDEuN3oiIGZpbGw9IiM0NDQiLz48L3N2Zz4=
+// @note              v3.2.6 重构样式系统，使用CSS变量实现完整的明暗主题自动适配
 // ==/UserScript==
 
 (function () {
@@ -95,7 +96,7 @@
          */
         PASSWORD_REGEX: /wss:[a-zA-Z0-9]+|\b(?<=\s*(?:密|提取|访问|訪問|key|password|pwd|#|\?p=|\?code=)\s*[码碼]?\s*[：:=]?\s*)[a-zA-Z0-9]{3,8}/i,
         PLUGIN_STYLES: `
-        /* CSS Variables for easy theming */
+        /* CSS Variables for easy theming - Light mode (default) */
         :root {
             --panai-primary: #3b82f6;
             --panai-primary-dark: #1d4ed8;
@@ -108,16 +109,52 @@
             --panai-info: #3b82f6;
             --panai-info-dark: #1d4ed8;
             --panai-bg: rgba(255, 255, 255, 0.95);
-            --panai-bg-dark: rgba(31, 41, 55, 0.95);
             --panai-text: #1f2937;
-            --panai-text-dark: #f9fafb;
             --panai-text-secondary: #4b5563;
-            --panai-text-secondary-dark: #d1d5db;
+            --panai-text-muted: #9ca3af;
             --panai-border: rgba(229, 231, 235, 0.8);
-            --panai-border-dark: rgba(255, 255, 255, 0.1);
+            --panai-bg-alt: #f9fafb;
+            --panai-bg-card: #f9fafb;
+            --panai-bg-card-alt: #fef2f2;
+            --panai-bg-input: rgba(255, 255, 255, 0.8);
+            --panai-bg-footer: rgba(249, 250, 251, 0.8);
+            --panai-bg-btn-cancel: #f8f9fa;
+            --panai-bg-btn-cancel-hover: #f3f4f6;
+            --panai-color-link: #2778c4;
+            --panai-color-link-hover: #1e5a94;
+            --panai-color-password: #e74c3c;
+            --panai-color-danger: #dc3545;
+            --panai-color-danger-dark: #dc2626;
+            --panai-border-danger: #fee2e2;
+            --panai-color-btn-danger-text: #dc2626;
             --panai-shadow: 0 20px 60px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
             --panai-radius: 12px;
             --panai-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Dark mode - automatic via OS preference */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --panai-bg: rgba(31, 41, 55, 0.95);
+                --panai-text: #f9fafb;
+                --panai-text-secondary: #d1d5db;
+                --panai-text-muted: #9ca3af;
+                --panai-border: rgba(255, 255, 255, 0.1);
+                --panai-bg-alt: rgba(17, 24, 39, 0.8);
+                --panai-bg-card: rgba(55, 65, 81, 0.6);
+                --panai-bg-card-alt: rgba(127, 29, 29, 0.4);
+                --panai-bg-input: rgba(55, 65, 81, 0.8);
+                --panai-bg-footer: rgba(17, 24, 39, 0.8);
+                --panai-bg-btn-cancel: rgba(55, 65, 81, 0.8);
+                --panai-bg-btn-cancel-hover: rgba(75, 85, 99, 0.8);
+                --panai-color-link: #60a5fa;
+                --panai-color-link-hover: #93c5fd;
+                --panai-color-password: #f87171;
+                --panai-color-danger: #ef4444;
+                --panai-color-danger-dark: #f87171;
+                --panai-border-danger: rgba(127, 29, 29, 0.5);
+                --panai-color-btn-danger-text: #f87171;
+            }
         }
 
         .panai-setting-label {
@@ -203,7 +240,7 @@
             border: none;
             font-size: 24px;
             cursor: pointer;
-            color: #9ca3af;
+            color: var(--panai-text-muted);
             padding: 4px 8px;
             border-radius: 6px;
             transition: all 0.2s ease;
@@ -216,8 +253,8 @@
         }
 
         .panai-dialog-close:hover {
-            color: #374151;
-            background: rgba(0, 0, 0, 0.05);
+            color: var(--panai-text);
+            background: rgba(128, 128, 128, 0.15);
         }
 
         .panai-dialog-body {
@@ -249,7 +286,7 @@
             display: flex;
             justify-content: flex-end;
             gap: 12px;
-            background: rgba(249, 250, 251, 0.8);
+            background: var(--panai-bg-footer);
             border-top: 1px solid var(--panai-border);
             margin-top: 0;
         }
@@ -290,15 +327,15 @@
         }
 
         .panai-cancel-btn {
-            background: #f8f9fa;
-            color: #6b7280;
-            border: 1px solid #e5e7eb;
+            background: var(--panai-bg-btn-cancel);
+            color: var(--panai-text-secondary);
+            border: 1px solid var(--panai-border);
         }
 
         .panai-cancel-btn:hover {
-            background: #f3f4f6;
-            color: #374151;
-            border-color: #d1d5db;
+            background: var(--panai-bg-btn-cancel-hover);
+            color: var(--panai-text);
+            border-color: var(--panai-border);
         }
 
         .panai-confirm-btn {
@@ -402,7 +439,8 @@
             box-sizing: border-box;
             font-size: 14px;
             transition: all 0.2s ease;
-            background: rgba(255, 255, 255, 0.8);
+            background: var(--panai-bg-input);
+            color: var(--panai-text);
             font-family: inherit;
         }
 
@@ -421,7 +459,7 @@
         .panai-dialog-body input[type="range"] {
             padding: 0;
             height: 6px;
-            background: #e5e7eb;
+            background: var(--panai-border);
             border-radius: 3px;
             outline: none;
             -webkit-appearance: none;
@@ -494,53 +532,172 @@
             }
         }
 
-        /* 深色模式适配 */
-        @media (prefers-color-scheme: dark) {
-            .panai-dialog-content {
-                background: var(--panai-bg-dark);
-                border-color: var(--panai-border-dark);
-            }
+        /* ============ 业务组件样式（原内联样式提取，支持日间/夜间模式） ============ */
 
-            .panai-dialog-title {
-                color: var(--panai-text-dark);
-            }
+        /* --- 链接检测对话框 (handleLinkDetection) --- */
+        .panai-link-info {
+            font-size: 14px;
+            line-height: 22px;
+        }
+        .panai-link-info-row {
+            margin-bottom: 10px;
+        }
+        .panai-link-info-label {
+            font-weight: 700;
+            color: var(--panai-text);
+        }
+        .panai-link-info-name {
+            color: var(--panai-color-link);
+        }
+        .panai-link-info-link {
+            color: var(--panai-color-link);
+            word-break: break-all;
+        }
+        .panai-link-info-pwd {
+            color: var(--panai-color-password);
+            font-weight: 700;
+        }
+        .panai-link-info-timer {
+            color: var(--panai-text-muted);
+            font-size: 12px;
+            text-align: center;
+            margin-top: 10px;
+        }
 
-            .panai-dialog-body {
-                color: var(--panai-text-secondary-dark);
-                scrollbar-color: var(--panai-border-dark) transparent;
-            }
+        /* --- 识别框提示 (showIdentifyBox) --- */
+        .panai-identify-hint {
+            font-size: 12px;
+            color: var(--panai-text-muted);
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .panai-hotkey {
+            font-weight: 700;
+            color: var(--panai-text);
+        }
+        .panai-identify-section {
+            font-size: 14px;
+            line-height: 22px;
+            padding: 10px 0 5px;
+            text-align: left;
+        }
+        .panai-identify-title {
+            font-size: 16px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: var(--panai-text);
+        }
+        .panai-identify-warning {
+            color: var(--panai-color-danger);
+            font-size: 12px;
+        }
 
-            .panai-dialog-body::-webkit-scrollbar-thumb {
-                background-color: var(--panai-border-dark);
-            }
+        /* --- 设置对话框容器 --- */
+        .panai-settings-container {
+            font-size: 1em;
+        }
 
-            .panai-dialog-footer {
-                background: rgba(17, 24, 39, 0.8);
-                border-top-color: var(--panai-border-dark);
-            }
-
-            .panai-cancel-btn {
-                background: rgba(55, 65, 81, 0.8);
-                color: #d1d5db;
-                border-color: var(--panai-border-dark);
-            }
-
-            .panai-cancel-btn:hover {
-                background: rgba(75, 85, 99, 0.8);
-                color: #f9fafb;
-            }
-
-            .panai-dialog-body textarea,
-            .panai-dialog-body input[type="text"] {
-                background: rgba(55, 65, 81, 0.8);
-                border-color: var(--panai-border-dark);
-                color: #f9fafb;
-            }
-
-            .panai-dialog-body textarea:focus,
-            .panai-dialog-body input[type="text"]:focus {
-                border-color: var(--panai-primary);
-            }
+        /* --- 历史记录对话框 (showHistoryDialog) --- */
+        .panai-history-wrap {
+            font-size: 14px;
+            color: var(--panai-text-secondary);
+        }
+        .panai-history-header {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panai-history-title {
+            margin: 0;
+            color: var(--panai-text);
+            font-size: 18px;
+        }
+        .panai-btn-clear-history {
+            padding: 6px 12px;
+            background: var(--panai-color-danger);
+            color: #fff;
+            border: 1px solid var(--panai-color-danger);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .panai-btn-clear-history:hover {
+            background: var(--panai-color-danger-dark);
+            border-color: var(--panai-color-danger-dark);
+        }
+        .panai-history-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .panai-history-item {
+            border: 1px solid var(--panai-border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: var(--panai-bg-card);
+            transition: all 0.2s ease;
+        }
+        .panai-history-item:hover {
+            border-color: var(--panai-primary);
+        }
+        .panai-history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .panai-history-item-name {
+            font-weight: 600;
+            color: var(--panai-color-link);
+        }
+        .panai-history-item-date {
+            font-size: 12px;
+            color: var(--panai-text-muted);
+            margin-left: 10px;
+            flex-shrink: 0;
+        }
+        .panai-btn-delete-item {
+            padding: 4px 8px;
+            background: var(--panai-bg-card-alt);
+            border: 1px solid var(--panai-border-danger);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--panai-color-btn-danger-text);
+            transition: all 0.2s ease;
+        }
+        .panai-btn-delete-item:hover {
+            background: var(--panai-color-danger);
+            color: #fff;
+            border-color: var(--panai-color-danger);
+        }
+        .panai-history-item-link-row {
+            margin-bottom: 8px;
+            word-break: break-all;
+        }
+        .panai-history-item-label {
+            font-size: 12px;
+            color: var(--panai-text-secondary);
+        }
+        .panai-history-item-link {
+            color: var(--panai-primary);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .panai-history-item-link:hover {
+            color: var(--panai-primary-dark);
+            text-decoration: underline;
+        }
+        .panai-history-item-pwd {
+            font-size: 12px;
+            color: var(--panai-text-secondary);
+        }
+        .panai-history-item-pwd-value {
+            font-weight: 600;
+            color: var(--panai-color-password);
         }
 
         /* 减少重排和重绘的优化 */
@@ -1684,22 +1841,22 @@
             .replace(/[\u0060\u2032\u2033\u201B]/g, '')   // 其他引号变体
             .trim();
 
-        const timerText = timerOpen ? `<div style="color: #999;font-size: 12px;text-align: center;margin-top: 10px;">${timer / 1000}秒后自动打开</div>` : '';
+        const timerText = timerOpen ? `<div class="panai-link-info-timer">${timer / 1000}秒后自动打开</div>` : '';
 
         // 使用模板字符串生成HTML
         const html = `
-            <div style="font-size: 14px;line-height: 22px;">
-                <div style="margin-bottom: 10px;">
-                    <span style="font-weight: 700;color: #333;">网盘：</span>
-                    <span style="color: #2778c4;">${linkObj.name}</span>
+            <div class="panai-link-info">
+                <div class="panai-link-info-row">
+                    <span class="panai-link-info-label">网盘：</span>
+                    <span class="panai-link-info-name">${linkObj.name}</span>
                 </div>
-                <div style="margin-bottom: 10px;">
-                    <span style="font-weight: 700;color: #333;">链接：</span>
-                    <span style="color: #2778c4;word-break: break-all;">${cleanLink}</span>
+                <div class="panai-link-info-row">
+                    <span class="panai-link-info-label">链接：</span>
+                    <span class="panai-link-info-link">${cleanLink}</span>
                 </div>
-                <div style="margin-bottom: 10px;">
-                    <span style="font-weight: 700;color: #333;">提取码：</span>
-                    <span style="color: #e74c3c;font-weight: 700;">${pwd || '无'}</span>
+                <div class="panai-link-info-row">
+                    <span class="panai-link-info-label">提取码：</span>
+                    <span class="panai-link-info-pwd">${pwd || '无'}</span>
                 </div>
                 ${timerText}
             </div>
@@ -2320,8 +2477,8 @@
         const hotkeys = util.getValue(SETTINGS_CONFIG.hotkeys.storageKey);
         // 根据快捷键设置生成提示文字
         const hotkeyTip = hotkeys && hotkeys.trim()
-            ? `<div style="font-size: 12px;color: #999;margin-bottom: 8px;text-align: center;">
-                提示：在任意网页按下 <span style="font-weight: 700;">${hotkeys}</span> 键可快速打开本窗口。
+            ? `<div class="panai-identify-hint">
+                提示：在任意网页按下 <span class="panai-hotkey">${hotkeys}</span> 键可快速打开本窗口。
             </div>`
             : '';
 
@@ -2331,12 +2488,12 @@
             id="panai-textarea"
         ></textarea>
         ${hotkeyTip}
-        <div style="font-size: 14px;line-height: 22px;padding: 10px 0 5px;text-align: left;">
-            <div style="font-size: 16px;margin-bottom: 8px;font-weight: 700;">支持以下两种方式：</div>
+        <div class="panai-identify-section">
+            <div class="panai-identify-title">支持以下两种方式：</div>
             <div><b>方式一：</b>直接粘贴文字到输入框，点击“识别方框内容”按钮。</div>
             <div>
                 <b>方式二：</b>点击“读取剪切板”按钮。
-                <span style="color: #d14529;font-size: 12px;">
+                <span class="panai-identify-warning">
                     会弹出“授予网站读取剪切板”权限，同意后会自动识别剪切板中的文字。
                 </span>
             </div>
@@ -2491,12 +2648,7 @@
 
         // 生成设置项HTML的辅助函数
         function _generateSettingsHtml(settings) {
-            const containerStyle = { fontSize: '1em' };
-            const containerStyleStr = Object.entries(containerStyle)
-                .map(([key, val]) => `${key}: ${val}`)
-                .join('; ');
-
-            let html = `<div style="${containerStyleStr}">`;
+            let html = `<div class="panai-settings-container">`;
 
             settings.forEach(setting => {
                 const {
@@ -2624,12 +2776,12 @@
 
         // 生成历史记录HTML
         let html = `
-            <div style="font-size: 14px;">
-                <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-                    <h4 style="margin: 0; color: #333;">已识别的网盘链接（${history.length}条）</h4>
-                    <button id="clear-history-btn" style="padding: 6px 12px; background: #dc3545; color: #fff; border: 1px solid #dc3545; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">清空历史</button>
+            <div class="panai-history-wrap">
+                <div class="panai-history-header">
+                    <h4 class="panai-history-title">已识别的网盘链接（${history.length}条）</h4>
+                    <button id="clear-history-btn" class="panai-btn-clear-history">清空历史</button>
                 </div>
-                <div style="max-height: 400px; overflow-y: auto;">
+                <div class="panai-history-list">
         `;
 
         // 添加历史记录项
@@ -2638,19 +2790,19 @@
             const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 
             html += `
-                <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 10px; background: #f9fafb;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                <div class="panai-history-item">
+                    <div class="panai-history-item-header">
                         <div>
-                            <span style="font-weight: 600; color: #2778c4;">${item.name}</span>
-                            <span style="font-size: 12px; color: #9ca3af; margin-left: 10px;">${formattedDate}</span>
+                            <span class="panai-history-item-name">${item.name}</span>
+                            <span class="panai-history-item-date">${formattedDate}</span>
                         </div>
-                        <button class="delete-history-item" data-id="${item.id}" style="padding: 4px 8px; background: #fef2f2; border: 1px solid #fee2e2; border-radius: 4px; cursor: pointer; font-size: 12px; color: #dc2626;">删除</button>
+                        <button class="panai-btn-delete-item delete-history-item" data-id="${item.id}">删除</button>
                     </div>
-                    <div style="margin-bottom: 8px; word-break: break-all;">
-                        <span style="font-size: 12px; color: #6b7280;">链接：</span>
-                        <a href="${item.link}" target="_blank" style="color: #3b82f6; text-decoration: none;">${item.link}</a>
+                    <div class="panai-history-item-link-row">
+                        <span class="panai-history-item-label">链接：</span>
+                        <a href="${item.link}" target="_blank" class="panai-history-item-link">${item.link}</a>
                     </div>
-                    ${item.pwd ? `<div style="font-size: 12px; color: #6b7280;">提取码：<span style="font-weight: 600; color: #e74c3c;">${item.pwd}</span></div>` : ''}
+                    ${item.pwd ? `<div class="panai-history-item-pwd">提取码：<span class="panai-history-item-pwd-value">${item.pwd}</span></div>` : ''}
                 </div>
             `;
         });
