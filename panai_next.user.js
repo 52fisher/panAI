@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              网盘智能识别助手(NEXT)
 // @namespace         https://github.com/52fisher/panAI
-// @version           3.2.4
+// @version           3.2.5
 // @author            52fisher
 // @description       智能识别选中文字中的🔗网盘链接和🔑提取码，识别成功打开网盘链接并自动填写提取码，省去手动复制提取码在输入的烦恼。
 // @license           AGPL-3.0-or-later
@@ -28,34 +28,34 @@
     const SETTINGS_CONFIG = {
         // 成功识别次数统计
         successTimes: { storageKey: 'setting_success_times', defaultValue: 0 },
-        
+
         // 填写密码后自动点击提交按钮
         autoClickBtn: { storageKey: 'setting_auto_click_btn', defaultValue: true },
-        
+
         // 前台打开网盘链接，立即激活新标签页
         activeInFront: { storageKey: 'setting_active_in_front', defaultValue: true },
-        
+
         // 倒计时结束后自动打开链接
         timerOpen: { storageKey: 'setting_timer_open', defaultValue: false },
-        
+
         // 自动补全网盘链接前缀（http://等）
         autoComplete: { storageKey: 'setting_auto_complete', defaultValue: false },
-        
+
         // 将超链接文本内容作为密码（实验性功能）
         textAsPassword: { storageKey: 'setting_text_as_password', defaultValue: false },
-        
+
         // 倒计时时长（毫秒）
         timer: { storageKey: 'setting_timer', defaultValue: 5000 },
-        
+
         // 快捷键设置，触发识别功能的键盘快捷键（默认为空，需用户手动设置）
         hotkeys: { storageKey: 'setting_hotkeys', defaultValue: '' },
-        
+
         // 链接管理功能（实验性），启用历史记录功能
         linkManagement: { storageKey: 'setting_link_management', defaultValue: false },
-        
+
         // 链接历史记录数据
         linkHistory: { storageKey: 'setting_link_history', defaultValue: [] },
-        
+
         // 自动检测未知网盘链接（实验性功能）
         autoDetectUnknownDisk: { storageKey: 'setting_auto_detect_unknown_disk', defaultValue: false }
     };
@@ -266,6 +266,8 @@
             position: relative;
             overflow: hidden;
             font-family: inherit;
+            height: fit-content;
+            line-height: normal;
         }
 
         .panai-dialog-footer button:active {
@@ -569,13 +571,13 @@
     class Dialog {
         // 单例实例
         static instance = null;
-        
+
         constructor() {
             // 如果已存在实例，返回已有实例
             if (Dialog.instance) {
                 return Dialog.instance;
             }
-            
+
             // 绑定方法的上下文，确保this指向正确
             this.toast = this.toast.bind(this);
             this.handleOverlayClick = this.handleOverlayClick.bind(this);
@@ -631,7 +633,7 @@
             this.timerBar = null;
             this.resolve = null;
             this.toastTimer = null;
-            
+
             // 保存单例实例
             Dialog.instance = this;
         }
@@ -684,12 +686,12 @@
                 this.clearTimer();
             });
         }
-        
+
         // 标记开始显示
         startShowing() {
             this.isShowing = true;
         }
-        
+
         // 标记显示结束
         endShowing() {
             this.isShowing = false;
@@ -1493,19 +1495,17 @@
      * @param {string} str - 要识别的字符串
      */
     async function smartIdentify(event, str = '') {
-        const activeEl = event.target.tagName;
+        const activeEl = event?.target || '';
         // 如果焦点在输入框、文本域、可编辑元素，直接return，不执行识别
-        if(['INPUT','TEXTAREA'].includes(activeEl) || activeEl.isContentEditable){
+        if (['INPUT', 'TEXTAREA'].includes(activeEl?.tagName) || activeEl?.isContentEditable) {
             return;
         }
         const selection = window.getSelection();
         const text = str || getSelectionContent(selection);
-
-        // 自动推导网盘前缀的开关
-        const isAutoComplete = util.getValue(SETTINGS_CONFIG.autoComplete.storageKey);
+        // 将超链接文本作为密码的开关
         const isTextAsPassword = util.getValue(SETTINGS_CONFIG.textAsPassword.storageKey);
+        // 链接管理的开关
         const isLinkManagement = util.getValue(SETTINGS_CONFIG.linkManagement.storageKey);
-        const isPanLinkBackup = util.getValue(SETTINGS_CONFIG.autoDetectUnknownDisk.storageKey);
         // 选择相同文字或空不识别
         if (text === lastText || text === '') {
             return;
@@ -1516,7 +1516,6 @@
 
         // 解析链接和密码
         let linkObj = parseLink(text);
-        util.clog(`解析结果：${JSON.stringify(linkObj)}`);
         let pwd = parsePassword(text);
 
         // 从父元素解析链接
@@ -1527,39 +1526,26 @@
         if (isTextAsPassword && !pwd) {
             pwd = parseLinkTextAsPassword(selection);
         }
+        util.clog(`解析结果：${JSON.stringify(linkObj)}`);
+        // 未找到链接，直接return
+        if (!linkObj.link) {
+            return;
+        }
+        // 补全协议头
+        if (/https?:\/\//.test(linkObj.link) === false) {
+            linkObj.link = 'https://' + linkObj.link;
+        }
+        // 计算耗时
+        const endTime = performance.now();
+        const timeCost = (endTime - startTime).toFixed(3);
+        util.clog(`文本识别结果：${linkObj.name} 链接：${linkObj.link} 密码：${pwd} 耗时：${timeCost}毫秒`);
 
-        // 自动补全链接
-        if (isAutoComplete && !linkObj?.link) {
-            linkObj = parseLink(text, true);
+        // 如果启用了链接管理，添加到历史记录
+        if (isLinkManagement) {
+            addLinkToHistory(linkObj, pwd);
         }
-        if (isPanLinkBackup && !linkObj?.link) {
-            linkObj = parseLink(text);
-        }
-        if (isPanLinkBackup && !linkObj?.link) {
-            if (!inferPanLink(text)) {
-                return;
-            }
-            linkObj = parseLink(text, false, true);
-        }
-        // 如果找到链接
-        if (linkObj.link) {
-            // 补全协议头
-            if (!/https?:\/\//.test(linkObj.link)) {
-                linkObj.link = 'https://' + linkObj.link;
-            }
-
-            // 计算耗时
-            const endTime = performance.now();
-            const timeCost = (endTime - startTime).toFixed(3);
-            util.clog(`文本识别结果：${linkObj.name} 链接：${linkObj.link} 密码：${pwd} 耗时：${timeCost}毫秒`);
-
-            // 如果启用了链接管理，添加到历史记录
-            if (isLinkManagement) {
-                addLinkToHistory(linkObj, pwd);
-            }
-            // 显示提示并处理用户操作
-            handleLinkDetection(linkObj, pwd);
-        }
+        // 显示提示并处理用户操作
+        handleLinkDetection(linkObj, pwd);
 
     }
 
@@ -1575,11 +1561,11 @@
 
             // 检查是否存在重复链接
             const existingIndex = history.findIndex(item => item.link === linkObj.link);
-            
+
             if (existingIndex !== -1) {
                 // 找到重复链接，删除原记录
                 history.splice(existingIndex, 1);
-                
+
                 util.clog('链接已存在，已删除原记录');
             }
 
@@ -1664,7 +1650,7 @@
         // 打开标签页
         GM_openInTab(targetLink, { active });
     }
-    
+
     /**
      * 处理检测到的链接
      * @param {Object} linkObj - 链接对象
@@ -1699,7 +1685,7 @@
             .trim();
 
         const timerText = timerOpen ? `<div style="color: #999;font-size: 12px;text-align: center;margin-top: 10px;">${timer / 1000}秒后自动打开</div>` : '';
-        
+
         // 使用模板字符串生成HTML
         const html = `
             <div style="font-size: 14px;line-height: 22px;">
@@ -1718,7 +1704,7 @@
                 ${timerText}
             </div>
         `;
-    
+
         dialog.confirm({
             title: '检测到网盘链接',
             html: html,
@@ -1896,11 +1882,15 @@
      * 解析文本中的网盘链接
      * @param {string} text - 文本内容
      * @param {boolean} autoCompletePrefix - 是否自动补全链接前缀
-     * @param {boolean} isPanLinkBackup - 是否为备用网盘链接模式
+     * @param {boolean} isAutoDetect - 是否自动识别未知网盘链接
      * @returns {Object} result - 解析结果
      */
-    function parseLink(text = '', autoCompletePrefix = false, isPanLinkBackup = false) {
-        let result = { name: '', link: '', storage: '', storagePwdName: '' };
+    function parseLink(text = '') {
+        const result = { name: '', link: '', storage: '', storagePwdName: '' };
+        // 自动推导网盘前缀的开关
+        const isAutoComplete = util.getValue(SETTINGS_CONFIG.autoComplete.storageKey);
+        // 自动识别未知网盘链接的开关
+        const isAutoDetect = util.getValue(SETTINGS_CONFIG.autoDetectUnknownDisk.storageKey);
         if (!text) {
             return result;
         }
@@ -1921,12 +1911,35 @@
         //过滤链接中的中文或表情字符
         // text = text.replace(/[\u4e00-\u9fa5()（）,\u200B，\uD83C-\uDBFF\uDC00-\uDFFF]/g, '');
         text = text.replace(/(?<=[\w./:])[\u4e00-\u9fa5\uD83C-\uDBFF\uDC00-\uDFFF]{1,2}(?=[\w./:])/g, "");
-        if (isPanLinkBackup) {
+        // 从PAN_CONFIGS中匹配链接
+        for (let name in PAN_CONFIGS) {
+            const item = PAN_CONFIGS[name];
+            let tmpText = text;
+            //如果链接中不包含可自动补全的前缀，则自动补全前缀。要求补全链接的前缀应提前加入对应位置
+            if (isAutoComplete &&
+                item.hasOwnProperty('autoCompleteReg') &&
+                item.hasOwnProperty('autoCompleteUrlPrefix') &&
+                !tmpText.includes(item.autoCompleteUrlPrefix)
+            ) {
+                tmpText = tmpText.replace(item.autoCompleteReg, item.autoCompleteUrlPrefix + "$&");
+            }
+            const matches = tmpText.match(item.reg);
+            if (!matches) continue;
+            result.name = item.name;
+            result.link = matches[0];
+            result.storage = item.storage;
+            result.storagePwdName = item.storagePwdName ?? null;
+            // 字符串替换，host为普通域名文本
+            result.link = item.replaceHost ? result.link.replace(item.host, item.replaceHost) : result.link;
+            return result;
+        }
+        // 未匹配到已知网盘，判断链接是否为未知网盘
+        if (isAutoDetect && inferPanLink(text)) {
             //清洗text,提取出链接
-            let link = text.match(/https?:\/\/[A-Za-z0-9_\-\+.:?&@=/%#,;]*/);
+            const link = text.match(/https?:\/\/[A-Za-z0-9_\-\+.:?&@=/%#]*/);
             if (link) {
                 try {
-                    let url = new URL(link[0]);
+                    const url = new URL(link[0]);
                     result.link = url.href;
                     result.name = url.hostname.split('.').slice(-2)[0] || '未知网盘';
                     result.storagePwdName = "tmp_common_pwd";
@@ -1935,24 +1948,6 @@
                 }
             }
             return result;
-        }
-        for (let name in PAN_CONFIGS) {
-            let item = PAN_CONFIGS[name];
-            //要求补全链接的前缀应提前加入对应位置
-            if (autoCompletePrefix && item.hasOwnProperty('autoCompleteReg')) {
-                text = text.replace(item.autoCompleteReg, item.autoCompleteUrlPrefix + "$&");
-            }
-            if (item.reg.test(text)) {
-                let matches = text.match(item.reg);
-                result.name = item.name;
-                result.link = matches[0];
-                result.storage = item.storage;
-                result.storagePwdName = item.storagePwdName || null;
-                if (item.replaceHost) {
-                    result.link = result.link.replace(item.host, item.replaceHost);
-                }
-                return result;
-            }
         }
         return result;
     }
@@ -1999,7 +1994,7 @@
                 }
             }
         } catch (error) {
-            console.error('解析链接文本作为密码时出错:', error);
+            util.clog('解析链接文本作为密码时出错:', error);
         }
         return '';
     }
@@ -2039,7 +2034,7 @@
     * 自动填写密码
     */
     function autoFillPassword() {
-        const {isHashMode, hashPart} = parseHashRoute(location.href);
+        const { isHashMode, hashPart } = parseHashRoute(location.href);
         // 从URL获取密码
         const queryPwd = util.parseQuery('pwd|p');
         // 从Hash中获取密码,如果为路由Hash模式,则此时Hash密码不可信
@@ -2077,9 +2072,9 @@
         }
         // 处理未知网盘的密码填充逻辑
         const tmpPwd = util.getValue('tmp_common_pwd');
-        const isPanLinkBackup = util.getValue(SETTINGS_CONFIG.autoDetectUnknownDisk.storageKey);
+        const isAutoDetect = util.getValue(SETTINGS_CONFIG.autoDetectUnknownDisk.storageKey);
 
-        if (isPanLinkBackup && !panType && tmpPwd) {
+        if (isAutoDetect && !panType && tmpPwd) {
             // 更全面地查找可能的密码输入框
             const passwordInputSelectors = [
                 'input[type=password]',
@@ -2203,9 +2198,9 @@
      * @param {string[]} inputSelectors - 输入框选择器
      * @param {string[]} buttonSelectors - 按钮选择器
      * @param {string} pwd - 密码
-     * @param {boolean} isPanLinkBackup - 是否为备用网盘链接模式
+     * @param {boolean} isAutoDetect - 是否为备用网盘链接模式
      */
-    function fillPasswordAndSubmit(inputSelectors, buttonSelectors, pwd, isPanLinkBackup = false) {
+    function fillPasswordAndSubmit(inputSelectors, buttonSelectors, pwd, isAutoDetect = false) {
         let attempt = 0;          // 尝试次数
         const maxAttempts = 10;   // 最大尝试次数
         const baseDelay = 800;    // 基础延迟时间(ms)
@@ -2224,7 +2219,7 @@
 
             try {
                 let input = util.query(inputSelectors);
-                let button = isPanLinkBackup ? (input ? findNearbySubmitButton(input) : null) : util.query(buttonSelectors);
+                let button = isAutoDetect ? (input ? findNearbySubmitButton(input) : null) : util.query(buttonSelectors);
                 if (input && !util.isHidden(input)) {
                     // 找到输入框并可见，执行填充操作
                     let titletips = attempt === 1 ? 'AI已识别到密码！正自动帮您填写' : 'AI已识别到密码！正自动帮您重试 +' + attempt + ' 次';
@@ -2787,11 +2782,10 @@
         // 执行初始化流程
         initSettings();
         addPluginStyles();
-        addHotKeySupport();
         autoFillPassword();
         addPageListeners();
-
-        // 只在顶层窗口注册菜单命令
+        addHotKeySupport();
+        // 只在顶层窗口注册菜单命令和快捷键
         if (isTopWindow()) {
             registerMenuCommands();
         }
